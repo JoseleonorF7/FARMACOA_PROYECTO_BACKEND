@@ -11,33 +11,35 @@ import java.time.LocalDate;
 @Setter
 public class Empleado_Model {
 
+
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // ID autoincremental del empleado
+    private Long id;  // ID autoincremental
 
-    @Column(name = "nombre", nullable = false, length = 100)
-    private String nombre; // Nombre completo del empleado
+    @Column(name = "nombre", length = 100, nullable = true)  // Asegúrate de que sea null
+    private String nombre;  // Nombre completo del empleado
 
-    @Column(name = "identificacion", nullable = false, length = 50, unique = true)
-    private String identificacion; // Identificación del empleado
+    @Column(name = "identificacion", length = 50, unique = true, nullable = true)  // Asegúrate de que sea null
+    private String identificacion;  // Identificación del empleado
 
-    @Column(name = "fecha_contratacion", nullable = false)
-    private LocalDate fechaContratacion; // Fecha de contratación
+    @Column(name = "fecha_contratacion", nullable = true)  // Asegúrate de que sea null
+    private LocalDate fechaContratacion;  // Fecha de contratación
 
-    @Column(name = "activo", nullable = false)
-    private Boolean activo; // Estado de si el empleado sigue trabajando
+    @Column(name = "activo", nullable = true)  // Asegúrate de que sea null
+    private Boolean activo;  // Estado de si el empleado sigue trabajando
 
-    @Column(name = "huella_digital", length = 255)
-    private String huellaDigital; // Hash o referencia de la huella dactilar (opcional)
+    @Column(name = "huella_dactilar", nullable = true)  // Ya permitido como null
+    private String huellaDactilar;  // Huella dactilar del empleado
 
     // Constructor vacío
     public Empleado_Model() {}
 
     // Constructor con parámetros
-    public Empleado_Model(String nombre, String identificacion, LocalDate fechaContratacion, Boolean activo, String huellaDigital) {
+    public Empleado_Model(String nombre, String identificacion, LocalDate fechaContratacion, Boolean activo, String huellaDactilar) {
         this.nombre = nombre;
         this.identificacion = identificacion;
         this.fechaContratacion = fechaContratacion;
         this.activo = activo;
-        this.huellaDigital = huellaDigital;
+        this.huellaDactilar = huellaDactilar;
     }}
