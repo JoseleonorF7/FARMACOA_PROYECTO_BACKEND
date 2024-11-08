@@ -12,7 +12,6 @@ import java.time.LocalDate;
 public class Empleado_Model {
 
 
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;  // ID autoincremental
@@ -29,17 +28,22 @@ public class Empleado_Model {
     @Column(name = "activo", nullable = true)  // Asegúrate de que sea null
     private Boolean activo;  // Estado de si el empleado sigue trabajando
 
+    @Column(name = "Rol", nullable = true)  // Ya permitido como null
+    private String rol;
+
     @Column(name = "huella_dactilar", nullable = true)  // Ya permitido como null
     private String huellaDactilar;  // Huella dactilar del empleado
 
     // Constructor vacío
-    public Empleado_Model() {}
+    public Empleado_Model() {
+    }
 
-    // Constructor con parámetros
-    public Empleado_Model(String nombre, String identificacion, LocalDate fechaContratacion, Boolean activo, String huellaDactilar) {
-        this.nombre = nombre;
-        this.identificacion = identificacion;
-        this.fechaContratacion = fechaContratacion;
+    public Empleado_Model(Boolean activo, LocalDate fechaContratacion, String huellaDactilar, String identificacion, String nombre, String rol) {
         this.activo = activo;
+        this.fechaContratacion = fechaContratacion;
         this.huellaDactilar = huellaDactilar;
-    }}
+        this.identificacion = identificacion;
+        this.nombre = nombre;
+        this.rol = rol;
+    }
+}

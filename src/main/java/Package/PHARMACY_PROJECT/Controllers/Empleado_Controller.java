@@ -22,11 +22,11 @@ public class Empleado_Controller {
     @Autowired
     private Empleado_Services empleadoServices;
 
-    // Método para obtener todas las huellas dactilares
     @GetMapping("/huellas")
     public ResponseEntity<Response<List<String>>> getAllHuellas() {
         try {
-            List<String> huellas = empleadoServices.getAllHuellas();
+            // Obtener solo las huellas donde la identificación es null o está vacía
+            List<String> huellas = empleadoServices.getHuellasSinIdentificacion();
             Response<List<String>> response = new Response<>("200", "Huellas recuperadas satisfactoriamente", huellas, "HUELLAS_FOUND");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -36,23 +36,34 @@ public class Empleado_Controller {
         }
     }
 
+
     // Método para guardar empleado solo con huella dactilar
     @PostMapping("/registrarHuella")
     public ResponseEntity<Response<Empleado_Model>> saveEmpleadoHuella(@RequestBody Empleado_Model empleado) {
         try {
-            // Aquí se guarda únicamente la huella
+            // Verificar si la huella dactilar ya está registrada
+            Optional<Empleado_Model> empleadoExistente = empleadoServices.findByHuellaDactilar(empleado.getHuellaDactilar());
+
+            if (empleadoExistente.isPresent()) {
+                // Si la huella ya existe, retornar un error
+                Response<Empleado_Model> response = new Response<>("400", "La huella dactilar ya está registrada", null, "HUELLA_DUPLICATE");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+
+            // Guardar el nuevo empleado con la huella
             Empleado_Model empleadoGuardado = empleadoServices.saveHuella(empleado);
             Response<Empleado_Model> response = new Response<>("200", "Huella registrada satisfactoriamente", empleadoGuardado, "HUELLA_CREATED");
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
-            // Logueamos el error completo para ver el stack trace
+            // Loguear el error completo
             logger.error("Error al registrar la huella: ", e);
 
-            // También puedes devolver el mensaje de error detallado en la respuesta para depuración
+            // Respuesta de error detallada
             Response<Empleado_Model> response = new Response<>("500", "Error al registrar la huella: " + e.getMessage(), null, "INTERNAL_SERVER_ERROR");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
     // Método para mostrar la huella dactilar de un empleado
     @GetMapping("/huella/{id}")
     public ResponseEntity<Response<String>> getHuella(@PathVariable Long id) {
@@ -71,10 +82,20 @@ public class Empleado_Controller {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
     @PostMapping("/registrar/{huella}")
     public ResponseEntity<Response<Empleado_Model>> updateEmpleado(
             @PathVariable String huella, @RequestBody Empleado_Model empleadoData) {
         try {
+            // Verificar si ya existe un empleado con la misma identificación
+            Optional<Empleado_Model> empleadoConIdentificacion = empleadoServices.findByIdentificacion(empleadoData.getIdentificacion());
+
+            if (empleadoConIdentificacion.isPresent()) {
+                // Si el empleado ya existe con esa identificación, retornar un mensaje
+                Response<Empleado_Model> response = new Response<>("400", "Empleado con esa identificación ya existe", null, "EMPLEADO_DUPLICADO");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+
             // Buscar empleado por huella dactilar
             Optional<Empleado_Model> empleadoExistente = empleadoServices.findByHuellaDactilar(huella);
 
@@ -85,6 +106,7 @@ public class Empleado_Controller {
                 empleado.setIdentificacion(empleadoData.getIdentificacion());
                 empleado.setFechaContratacion(empleadoData.getFechaContratacion());
                 empleado.setActivo(empleadoData.getActivo());
+                empleado.setRol(empleadoData.getRol());
 
                 Empleado_Model empleadoGuardado = empleadoServices.save(empleado);
 
@@ -103,6 +125,7 @@ public class Empleado_Controller {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
 
 
     // Método para obtener todos los empleados

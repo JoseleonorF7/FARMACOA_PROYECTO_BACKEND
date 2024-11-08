@@ -3,6 +3,7 @@ import Package.PHARMACY_PROJECT.Models.Empleado_Model;
 import Package.PHARMACY_PROJECT.Repository.Empleado_Repository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -80,8 +81,23 @@ public class Empleado_Services {
     }
 
     // Método para eliminar todos los empleados
+    @Transactional
     public void deleteAll() {
         empleadoRepository.deleteAll();
+        empleadoRepository.resetAutoIncrement();
+
     }
+
+    public List<String> getHuellasSinIdentificacion() {
+        // Buscar todos los empleados donde el campo 'identificacion' sea null o esté vacío
+        List<Empleado_Model> empleadosSinIdentificacion = empleadoRepository.findByIdentificacionIsNullOrIdentificacion("");
+
+        // Extraer solo las huellas de esos empleados
+        List<String> huellas = empleadosSinIdentificacion.stream()
+                .map(Empleado_Model::getHuellaDactilar)
+                .collect(Collectors.toList());
+        return huellas;
+    }
+
 }
 
