@@ -46,4 +46,10 @@ public class Empleado_Model {
         this.nombre = nombre;
         this.rol = rol;
     }
+
+    // Método para obtener el estado de "activo"
+    public boolean isActivo() {
+        return activo;
+    }
+
 }
