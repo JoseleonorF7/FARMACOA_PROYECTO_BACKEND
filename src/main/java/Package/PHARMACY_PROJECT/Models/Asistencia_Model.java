@@ -9,6 +9,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 import static Package.PHARMACY_PROJECT.Controllers.Asistencia_Controller.*;
 
@@ -41,6 +43,11 @@ public class Asistencia_Model {
     @Column(name = "tipoRegistro", nullable = false, length = 20)
     private String tipoRegistro; // Estado de la asistencia (temprano, puntual, tarde)
 
+    @Transient
+    private String diferenciaTiempoEntrada; // Diferencia de tiempo, no persistente en la base de datos
+
+    @Transient
+    private String diferenciaTiempoSalida;
     // Constructor vacío
     public Asistencia_Model() {}
 
@@ -53,9 +60,6 @@ public class Asistencia_Model {
         this.horaSalida = horaSalida; // Salida inicial es null
         this.tipoRegistro =tipoRegistro;
     }
-
-    // Getters y Setters
-    // ...
 
     // Método en el modelo para actualizar el estado de salida
     public void actualizarEstadoSalida(LocalTime horaSalida) {
@@ -71,4 +75,72 @@ public class Asistencia_Model {
         } else {
             this.estado = "puntual";
         }
-}}
+}
+
+    public String calcularDiferenciaTiempoEntrada() {
+        if (horaEntrada != null) {
+            long diferenciaEntrada = ChronoUnit.MINUTES.between(HORA_REFERENCIA_ENTRADA, horaEntrada);
+
+            // Caso para "temprano"
+            if (diferenciaEntrada < RANGO_TEMPRANO) {
+                long horasTemprano = Math.abs(diferenciaEntrada) / 60; // Calcular horas
+                long minutosTemprano = Math.abs(diferenciaEntrada) % 60; // Calcular minutos
+                if (horasTemprano > 0) {
+                    return "Temprano por " + horasTemprano + " hora(s) y " + minutosTemprano + " minuto(s)";
+                } else {
+                    return "Temprano por " + minutosTemprano + " minuto(s)";
+                }
+            }
+            // Caso para "tarde"
+            else if (diferenciaEntrada > RANGO_TARDE) {
+                long horasTarde = diferenciaEntrada / 60; // Calcular horas
+                long minutosTarde = diferenciaEntrada % 60; // Calcular minutos
+                if (horasTarde > 0) {
+                    return "Tarde por " + horasTarde + " hora(s) y " + minutosTarde + " minuto(s)";
+                } else {
+                    return "Tarde por " + minutosTarde + " minuto(s)";
+                }
+            }
+            // Caso para "puntual"
+            else {
+                return "Puntual";
+            }
+        }
+        return "No disponible";
+    }
+
+    // Método para calcular la diferencia de tiempo para la salida
+    public String calcularDiferenciaTiempoSalida() {
+        if (horaSalida != null) {
+            long diferenciaSalida = ChronoUnit.MINUTES.between(HORA_REFERENCIA_SALIDA, horaSalida);
+
+            // Caso para "temprano"
+            if (diferenciaSalida < RANGO_TEMPRANO) {
+                long horasTemprano = Math.abs(diferenciaSalida) / 60; // Calcular horas
+                long minutosTemprano = Math.abs(diferenciaSalida) % 60; // Calcular minutos
+                if (horasTemprano > 0) {
+                    return "Temprano por " + horasTemprano + " hora(s) y " + minutosTemprano + " minuto(s)";
+                } else {
+                    return "Temprano por " + minutosTemprano + " minuto(s)";
+                }
+            }
+            // Caso para "tarde"
+            else if (diferenciaSalida > RANGO_TARDE) {
+                long horasTarde = diferenciaSalida / 60; // Calcular horas
+                long minutosTarde = diferenciaSalida % 60; // Calcular minutos
+                if (horasTarde > 0) {
+                    return "Tarde por " + horasTarde + " hora(s) y " + minutosTarde + " minuto(s)";
+                } else {
+                    return "Tarde por " + minutosTarde + " minuto(s)";
+                }
+            }
+            // Caso para "puntual"
+            else {
+                return "Puntual";
+            }
+        }
+        return "No disponible";
+    }
+
+}
+

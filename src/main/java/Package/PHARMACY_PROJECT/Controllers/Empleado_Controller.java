@@ -35,6 +35,40 @@ public class Empleado_Controller {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+    // Método para obtener todos los empleados
+    @GetMapping("/all")
+    public ResponseEntity<Response<List<Empleado_Model>>> getAllEmpleados() {
+        try {
+            List<Empleado_Model> empleados = empleadoServices.findAll();
+            Response<List<Empleado_Model>> response = new Response<>("200", "Empleados recuperados satisfactoriamente", empleados, "EMPLEADOS_FOUND");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error al recuperar la lista de empleados: ", e);
+            Response<List<Empleado_Model>> response = new Response<>("500", "Error al recuperar la lista de empleados", null, "INTERNAL_SERVER_ERROR");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    // Método para obtener un empleado por su identificación
+    @GetMapping("/identificacion/{identificacion}")
+    public ResponseEntity<Response<Empleado_Model>> getEmpleadoByIdentificacion(@PathVariable String identificacion) {
+        try {
+            // Buscar al empleado por su identificación
+            Optional<Empleado_Model> empleado = empleadoServices.findByIdentificacion(identificacion);
+
+            if (empleado.isPresent()) {
+                Response<Empleado_Model> response = new Response<>("200", "Empleado encontrado", empleado.get(), "EMPLEADO_FOUND");
+                return ResponseEntity.ok(response);
+            } else {
+                Response<Empleado_Model> response = new Response<>("404", "Empleado no encontrado con la identificación proporcionada", null, "EMPLEADO_NOT_FOUND");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+        } catch (Exception e) {
+            logger.error("Error al recuperar el empleado por identificación: ", e);
+            Response<Empleado_Model> response = new Response<>("500", "Error al recuperar el empleado", null, "INTERNAL_SERVER_ERROR");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
 
 
     // Método para guardar empleado solo con huella dactilar
@@ -128,20 +162,6 @@ public class Empleado_Controller {
 
 
 
-    // Método para obtener todos los empleados
-    @GetMapping("/all")
-    public ResponseEntity<Response<List<Empleado_Model>>> getAllEmpleados() {
-        try {
-            List<Empleado_Model> empleados = empleadoServices.getAllEmpleados();
-            Response<List<Empleado_Model>> response = new Response<>("200", "Empleados recuperados satisfactoriamente", empleados, "EMPLEADOS_FOUND");
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("Error al recuperar la lista de empleados: ", e);
-            Response<List<Empleado_Model>> response = new Response<>("500", "Error al recuperar la lista de empleados", null, "INTERNAL_SERVER_ERROR");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-    }
-
     @PutMapping("/actualizar/{identificacion}")
     public ResponseEntity<Response<Empleado_Model>> updateEmpleadoByIdentificacion(
             @PathVariable String identificacion, @RequestBody Empleado_Model empleadoData) {
@@ -152,14 +172,29 @@ public class Empleado_Controller {
             if (empleadoExistente.isPresent()) {
                 Empleado_Model empleado = empleadoExistente.get();
 
-                // Actualizar únicamente los campos específicos
-                if (empleadoData.getFechaContratacion() != null) {
+                // Verificar si los datos proporcionados son iguales a los existentes
+                boolean cambiosRealizados = false;
+
+                if (empleadoData.getFechaContratacion() != null && !empleadoData.getFechaContratacion().equals(empleado.getFechaContratacion())) {
                     empleado.setFechaContratacion(empleadoData.getFechaContratacion());
+                    cambiosRealizados = true;
                 }
-                if (empleadoData.getActivo() != null) {
+                if (empleadoData.getActivo() != null && !empleadoData.getActivo().equals(empleado.getActivo())) {
                     empleado.setActivo(empleadoData.getActivo());
+                    cambiosRealizados = true;
+                }
+                if (empleadoData.getRol() != null && !empleadoData.getRol().equals(empleado.getRol())) {
+                    empleado.setRol(empleadoData.getRol());
+                    cambiosRealizados = true;
                 }
 
+                // Si no se realizaron cambios, devolver respuesta adecuada
+                if (!cambiosRealizados) {
+                    Response<Empleado_Model> response = new Response<>("200", "NO HUBO CAMBIOS", null, "EMPLEADO_NO_UPDATED");
+                    return ResponseEntity.status(HttpStatus.OK).body(response);
+                }
+
+                // Guardar el empleado actualizado
                 Empleado_Model empleadoGuardado = empleadoServices.save(empleado);
 
                 Response<Empleado_Model> response = new Response<>("200", "Empleado actualizado satisfactoriamente", empleadoGuardado, "EMPLEADO_UPDATED");
@@ -175,6 +210,7 @@ public class Empleado_Controller {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
     // Método para eliminar un empleado por identificación
     @DeleteMapping("/eliminar/{identificacion}")
     public ResponseEntity<Response<Void>> deleteEmpleadoByIdentificacion(@PathVariable String identificacion) {
