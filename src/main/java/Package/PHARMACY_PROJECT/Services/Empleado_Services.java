@@ -31,7 +31,6 @@ public class Empleado_Services {
     public Optional<Empleado_Model> findByHuellaDactilar(String huellaDactilar) {
         return empleadoRepository.findByHuellaDactilar(huellaDactilar);
     }
-
     // Método para obtener todas las huellas dactilares de todos los empleados
     public List<String> getAllHuellas() {
         return empleadoRepository.findAll()
@@ -48,7 +47,6 @@ public class Empleado_Services {
         // Guarda en la base de datos
         return empleadoRepository.save(nuevoEmpleado);
     }
-
     // Método para obtener la huella dactilar de un empleado por su ID
     public String getHuellaById(Long id) {
         Empleado_Model empleado = empleadoRepository.findById(id).orElse(null);
@@ -97,6 +95,14 @@ public class Empleado_Services {
                 .map(Empleado_Model::getHuellaDactilar)
                 .collect(Collectors.toList());
         return huellas;
+    }
+    // Método para obtener el nombre del empleado según la identificación
+    public Optional<String> getNombreByIdentificacion(String identificacion) {
+        // Buscar el empleado por identificación
+        Optional<Empleado_Model> empleadoOpt = empleadoRepository.findByIdentificacion(identificacion);
+
+        // Si existe, devolver su nombre, de lo contrario, devolver un Optional vacío
+        return empleadoOpt.map(Empleado_Model::getNombre);
     }
 
 }

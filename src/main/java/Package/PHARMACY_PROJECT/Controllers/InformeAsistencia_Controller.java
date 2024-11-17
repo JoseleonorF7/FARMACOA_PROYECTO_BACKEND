@@ -3,6 +3,7 @@ package Package.PHARMACY_PROJECT.Controllers;
 import Package.PHARMACY_PROJECT.Models.Asistencia_Model;
 import Package.PHARMACY_PROJECT.Models.Empleado_Model;
 import Package.PHARMACY_PROJECT.Models.InformeAsistencia_Model;
+import Package.PHARMACY_PROJECT.Models.Reportes.ReporteConsolidado;
 import Package.PHARMACY_PROJECT.Services.Asistencia_Services;
 import Package.PHARMACY_PROJECT.Services.Empleado_Services;
 import Package.PHARMACY_PROJECT.Services.InformeAsistencia_Services;
@@ -105,16 +106,17 @@ public class InformeAsistencia_Controller {
     @GetMapping("/pdf/empleados")
     public ResponseEntity<byte[]> getAllEmployeeAttendancePdf() {
         try {
-            // Obtener todas las asistencias de todos los empleados
-            List<Asistencia_Model> asistencias = asistenciaServices.findAll();
+            // Obtener el reporte consolidado de asistencias desde el servicio
+            ReporteConsolidado reporteConsolidado = asistenciaServices.obtenerReporteConsolidado();
 
-            if (asistencias.isEmpty()) {
+            if (reporteConsolidado == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
             }
 
-            // Generar el PDF para todos los empleados
-            byte[] pdfBytes = informeAsistenciaServices.generateAllEmployeesAttendancePdf(asistencias);
+            // Generar el PDF usando los datos del reporte consolidado
+            byte[] pdfBytes = informeAsistenciaServices.generateAllEmployeesAttendancePdf(reporteConsolidado);
 
+            // Establecer las cabeceras para el archivo PDF
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
             headers.setContentDispositionFormData("inline", "informe_asistencia_todos_los_empleados.pdf");
@@ -124,5 +126,6 @@ public class InformeAsistencia_Controller {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
 
 }

@@ -1,8 +1,10 @@
 package Package.PHARMACY_PROJECT.Controllers;
 
 import Package.PHARMACY_PROJECT.Models.Empleado_Model;
+import Package.PHARMACY_PROJECT.Models.Horario_Model;
 import Package.PHARMACY_PROJECT.Services.Empleado_Services;
 import Package.PHARMACY_PROJECT.Response;
+import Package.PHARMACY_PROJECT.Services.Horario_Services;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,9 @@ public class Empleado_Controller {
 
     @Autowired
     private Empleado_Services empleadoServices;
+
+    @Autowired
+    private Horario_Services horarioServices;
 
     @GetMapping("/huellas")
     public ResponseEntity<Response<List<String>>> getAllHuellas() {
@@ -69,7 +74,6 @@ public class Empleado_Controller {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-
 
     // Método para guardar empleado solo con huella dactilar
     @PostMapping("/registrarHuella")
@@ -161,7 +165,6 @@ public class Empleado_Controller {
     }
 
 
-
     @PutMapping("/actualizar/{identificacion}")
     public ResponseEntity<Response<Empleado_Model>> updateEmpleadoByIdentificacion(
             @PathVariable String identificacion, @RequestBody Empleado_Model empleadoData) {
@@ -175,38 +178,78 @@ public class Empleado_Controller {
                 // Verificar si los datos proporcionados son iguales a los existentes
                 boolean cambiosRealizados = false;
 
-                if (empleadoData.getFechaContratacion() != null && !empleadoData.getFechaContratacion().equals(empleado.getFechaContratacion())) {
+                if (empleadoData.getFechaContratacion() != null
+                        && !empleadoData.getFechaContratacion().equals(empleado.getFechaContratacion())) {
                     empleado.setFechaContratacion(empleadoData.getFechaContratacion());
                     cambiosRealizados = true;
                 }
-                if (empleadoData.getActivo() != null && !empleadoData.getActivo().equals(empleado.getActivo())) {
+                if (empleadoData.getActivo() != null
+                        && !empleadoData.getActivo().equals(empleado.getActivo())) {
                     empleado.setActivo(empleadoData.getActivo());
                     cambiosRealizados = true;
                 }
-                if (empleadoData.getRol() != null && !empleadoData.getRol().equals(empleado.getRol())) {
+                if (empleadoData.getRol() != null
+                        && !empleadoData.getRol().equals(empleado.getRol())) {
                     empleado.setRol(empleadoData.getRol());
                     cambiosRealizados = true;
+                }
+                if (empleadoData.getHorario() != null
+                        && !empleadoData.getHorario().equals(empleado.getHorario())) {
+                    // Validar que el horario existe
+                    Optional<Horario_Model> horarioExistente = horarioServices.getHorarioById(empleadoData.getHorario().getId());
+                    if (horarioExistente.isPresent()) {
+                        empleado.setHorario(horarioExistente.get());
+                        cambiosRealizados = true;
+                    } else {
+                        Response<Empleado_Model> response = new Response<>(
+                                "404",
+                                "Horario no encontrado para el ID proporcionado",
+                                null,
+                                "HORARIO_NOT_FOUND"
+                        );
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+                    }
                 }
 
                 // Si no se realizaron cambios, devolver respuesta adecuada
                 if (!cambiosRealizados) {
-                    Response<Empleado_Model> response = new Response<>("200", "NO HUBO CAMBIOS", null, "EMPLEADO_NO_UPDATED");
+                    Response<Empleado_Model> response = new Response<>(
+                            "200",
+                            "NO HUBO CAMBIOS",
+                            null,
+                            "EMPLEADO_NO_UPDATED"
+                    );
                     return ResponseEntity.status(HttpStatus.OK).body(response);
                 }
 
                 // Guardar el empleado actualizado
                 Empleado_Model empleadoGuardado = empleadoServices.save(empleado);
 
-                Response<Empleado_Model> response = new Response<>("200", "Empleado actualizado satisfactoriamente", empleadoGuardado, "EMPLEADO_UPDATED");
+                Response<Empleado_Model> response = new Response<>(
+                        "200",
+                        "Empleado actualizado satisfactoriamente",
+                        empleadoGuardado,
+                        "EMPLEADO_UPDATED"
+                );
                 return ResponseEntity.status(HttpStatus.OK).body(response);
             } else {
-                Response<Empleado_Model> response = new Response<>("404", "Empleado no encontrado para la identificación proporcionada", null, "EMPLEADO_NOT_FOUND");
+                Response<Empleado_Model> response = new Response<>(
+                        "404",
+                        "Empleado no encontrado para la identificación proporcionada",
+                        null,
+                        "EMPLEADO_NOT_FOUND"
+                );
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
         } catch (Exception e) {
             logger.error("Error al actualizar al empleado: ", e);
 
-            Response<Empleado_Model> response = new Response<>("500", "Error al actualizar al empleado: " + e.getMessage(), null, "INTERNAL_SERVER_ERROR");
+            Response<Empleado_Model> response = new Response<>(
+                    "500",
+                    "Error al actualizar al empleado: " + e.getMessage(),
+                    null,
+                    "INTERNAL_SERVER_ERROR"
+            );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }

@@ -215,24 +215,11 @@ public class Asistencia_Controller {
         }
     }
 
-    @GetMapping("/reporte/todas")
+    @GetMapping("/todas/reporte")
     public ResponseEntity<Response<ReporteConsolidado>> obtenerTodasLasAsistenciasReporte() {
         try {
-            List<Asistencia_Model> asistencias = asistenciaServices.findAll();
+            ReporteConsolidado reporteConsolidado = asistenciaServices.obtenerReporteConsolidado();
 
-            // Calcular la diferencia de tiempo para entrada y salida
-            for (Asistencia_Model asistencia : asistencias) {
-                String diferenciaEntrada = asistencia.calcularDiferenciaTiempoEntrada();
-                asistencia.setDiferenciaTiempoEntrada(diferenciaEntrada);
-
-                String diferenciaSalida = asistencia.calcularDiferenciaTiempoSalida();
-                asistencia.setDiferenciaTiempoSalida(diferenciaSalida);
-            }
-
-            // Generar el reporte consolidado
-            ReporteConsolidado reporteConsolidado = generarReporte(asistencias);
-
-            // Crear la respuesta con el reporte consolidado
             Response<ReporteConsolidado> response = new Response<>();
             response.setCode("200");
             response.setMessage("Reporte generado exitosamente");
@@ -252,76 +239,6 @@ public class Asistencia_Controller {
             );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-    }
-
-
-    public ReporteConsolidado generarReporte(List<Asistencia_Model> asistencias) {
-        Map<String, EmpleadoReporte> reportePorEmpleado = new HashMap<>();
-        Map<YearMonth, PromedioMensual> promediosMensuales = new HashMap<>();
-
-        // Procesar cada registro de asistencia
-        for (Asistencia_Model asistencia : asistencias) {
-            String empleadoIdentificacion = asistencia.getEmpleado().getIdentificacion();
-
-            if (empleadoIdentificacion == null || empleadoIdentificacion.isEmpty()) {
-                logger.warn("Registro de asistencia con nombre de empleado nulo o vacío");
-                continue;
-            }
-
-            YearMonth mesAnio = YearMonth.from(asistencia.getFecha());
-            EmpleadoReporte datosEmpleado = reportePorEmpleado.computeIfAbsent(
-                    empleadoIdentificacion,
-                    k -> new EmpleadoReporte(empleadoIdentificacion)
-            );
-
-            if ("TARDE".equalsIgnoreCase(asistencia.getEstado()) && "ENTRADA".equalsIgnoreCase(asistencia.getTipoRegistro())) {
-                long minutosTarde = EmpleadoRanking.extraerMinutos(asistencia.getDiferenciaTiempoEntrada());
-                datosEmpleado.acumularTardanza(minutosTarde);
-                promediosMensuales.computeIfAbsent(mesAnio, k -> new PromedioMensual()).acumularTardanzaEntrada(minutosTarde);
-            } else if ("TEMPRANO".equalsIgnoreCase(asistencia.getEstado()) && "SALIDA".equalsIgnoreCase(asistencia.getTipoRegistro())) {
-                long minutosTemprano = EmpleadoRanking.extraerMinutos(asistencia.getDiferenciaTiempoSalida());
-                datosEmpleado.acumularSalidaTemprana(minutosTemprano);
-                promediosMensuales.computeIfAbsent(mesAnio, k -> new PromedioMensual()).acumularSalidaTemprana(minutosTemprano);
-            }
-        }
-
-        // Calcular rankings para tardanzas y salidas tempranas
-        List<EmpleadoRanking> rankingTardanzas = generarRanking(reportePorEmpleado, true);
-        List<EmpleadoRanking> rankingSalidasTempranas = generarRanking(reportePorEmpleado, false);
-
-        // Calcular promedios mensuales
-        calcularPromediosMensuales(promediosMensuales);
-
-        // Crear reporte final consolidado
-        ReporteConsolidado reporteFinal = new ReporteConsolidado(reportePorEmpleado, rankingTardanzas, rankingSalidasTempranas, promediosMensuales);
-        logger.info("Reporte final generado con éxito");
-        return reporteFinal;
-    }
-    // Genera el ranking en base a tardanzas (true) o salidas tempranas (false)
-    private List<EmpleadoRanking> generarRanking(Map<String, EmpleadoReporte> reportePorEmpleado, boolean esTardanza) {
-        return reportePorEmpleado.values().stream()
-                .map(emp -> {
-                    EmpleadoRanking ranking = new EmpleadoRanking(emp.getIdentificacionEmpleado());
-                    if (esTardanza) {
-                        ranking.acumularMinutosTardeEntrada(emp.getTotalMinutosTardeEntrada());
-                        logger.debug("Empleado {} tiene acumulado {} minutos tarde", emp.getIdentificacionEmpleado(), emp.getTotalMinutosTardeEntrada());
-                    } else {
-                        ranking.acumularMinutosTempranoSalida(emp.getTotalMinutosTempranoSalida());
-                        logger.debug("Empleado {} tiene acumulado {} minutos temprano", emp.getIdentificacionEmpleado(), emp.getTotalMinutosTempranoSalida());
-                    }
-                    return ranking;
-                })
-                .sorted(esTardanza ? EmpleadoRanking.comparadorTardeEntrada() : EmpleadoRanking.comparadorTempranoSalida())
-                .collect(Collectors.toList());
-    }
-
-    // Calcula y muestra promedios mensuales
-    private void calcularPromediosMensuales(Map<YearMonth, PromedioMensual> promediosMensuales) {
-        promediosMensuales.forEach((mes, promedio) -> {
-            double promedioTardanza = promedio.calcularPromedioTardanzaEntrada();
-            double promedioSalidaTemprana = promedio.calcularPromedioSalidaTemprana();
-            logger.info("Mes: {}, Promedio Tardanza (min): {}, Promedio Salida Temprana (min): {}", mes, promedioTardanza, promedioSalidaTemprana);
-        });
     }
 
 
