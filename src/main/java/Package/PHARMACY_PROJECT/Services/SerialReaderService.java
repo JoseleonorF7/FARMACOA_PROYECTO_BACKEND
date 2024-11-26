@@ -17,7 +17,8 @@ import java.util.Set;
 public class SerialReaderService {
 
     private static final String ARDUINO_PORT = "COM8";
-    private static final String BACKEND_URL = "http://localhost:8080/empleado/registrarHuella";
+    private static final String BACKEND_URL_HUELLA = "http://localhost:8080/empleado/registrarHuella";
+    private static final String BACKEND_URL_ASISTENCIA = "http://localhost:8080/asistencia/entrada/";
     private SerialPort port;
     private final RestTemplate restTemplate = new RestTemplate();
     private Set<String> processedFingerprints = new HashSet<>(); // Para evitar duplicados
@@ -61,10 +62,18 @@ public class SerialReaderService {
                     bytesRead = inputStream.read(buffer);
                     if (bytesRead > 0) {
                         String data = new String(buffer, 0, bytesRead).trim();
-                        System.out.println("Dato recibido del Arduino: " + data + " (hashCode: " + data.hashCode() + ")");
+                        System.out.println("Dato recibido del Arduino: " + data);
+
+                        // Filtrar mensajes no deseados antes de procesar
+                        if (data.equalsIgnoreCase("Imagen capturada correctamente.") ||
+                                data.equalsIgnoreCase("Huella identificada exitosamente") ||
+                                data.contains("Intentando identificar huella")) {
+                            System.out.println("Mensaje intermedio ignorado: " + data);
+                            continue;
+                        }
 
                         // Procesar datos válidos
-                        processSerialData(data);
+                        processBufferedData(data);
                     }
                 }
 
@@ -77,44 +86,99 @@ public class SerialReaderService {
         }
     }
 
-    private void processSerialData(String data) {
-        // Verifica si el mensaje contiene un JSON de huella dactilar
-        if (data.contains("{") && data.contains("}")) {
-            String jsonPart = data.substring(data.indexOf("{"), data.indexOf("}") + 1);
+    private void processBufferedData(String data) {
+        System.out.println("Entrando a processBufferedData con el dato: " + data);
 
-            if (jsonPart.matches("\\{\\s*\"huellaDactilar\"\\s*:\\s*\"\\d+\"\\s*\\}")) {
-                String fingerprintId = extractFingerprintId(jsonPart);
-                if (fingerprintId != null && !processedFingerprints.contains(fingerprintId)) {
-                    processedFingerprints.add(fingerprintId);
-                    sendFingerprintToBackend(fingerprintId);
-                } else if (data.contains("Huella identificada. ID:")) {
-                    sendFingerprintToAsistencia(fingerprintId);
-                } else {
-                    System.err.println("Advertencia: Huella duplicada detectada. Ignorando.");
-                }
-            } else {
-                System.err.println("Advertencia: JSON no válido detectado.");
-            }
+        // Normalización: eliminar puntos y espacios innecesarios
+        data = data.replaceAll("\\.+", "").trim();
+        System.out.println("Dato normalizado: " + data);
+
+        // Ignorar mensajes específicos que no se procesan
+        if (data.equalsIgnoreCase("Imagen capturada correctamente") ||
+                data.equalsIgnoreCase("Huella identificada exitosamente") ||
+                data.contains("Intentando identificar huella")) {
+            System.out.println("Mensaje intermedio ignorado: " + data);
+            return; // Salir del método sin procesar
+        }
+
+        if (data.startsWith("Huella registrada exitosamente ID:")) {
+            System.out.println("Detectado inicio de registro de nueva huella.");
+            handleRegistroHuella(data);
+        } else if (data.startsWith("Huella identificada ID:")) {
+            System.out.println("Detectada identificación de huella.");
+            handleHuellaIdentificada(data);
         } else {
-            System.out.println("Mensaje recibido: " + data);
+            System.out.println("Mensaje no reconocido: " + data);
         }
     }
 
-    private String extractFingerprintId(String data) {
+    private void handleRegistroHuella(String data) {
+        System.out.println("Entrando a handleRegistroHuella con el dato: " + data);
         try {
-            // Extraer ID de huella dactilar del JSON
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode node = mapper.readTree(data);
-            return node.get("huellaDactilar").asText();
+            String fingerprintId = extractIdFromRegistroMessage(data);
+            System.out.println("ID extraído del mensaje de registro: " + fingerprintId);
+            if (fingerprintId != null) {
+                System.out.println("Enviando ID al backend para registro.");
+                sendFingerprintToBackend(fingerprintId); // Enviar al endpoint de registro
+            } else {
+                System.out.println("Advertencia: ID de registro no válido. Ignorando.");
+            }
         } catch (Exception e) {
-            System.err.println("Error al procesar JSON: " + e.getMessage());
+            System.err.println("Error al manejar el registro de huella: " + e.getMessage());
+        }
+    }
+
+    private String extractIdFromRegistroMessage(String data) {
+        System.out.println("Entrando a extractIdFromRegistroMessage con el dato: " + data);
+        try {
+            if (data.startsWith("Huella registrada exitosamente ID:")) {
+                String id = data.split(":")[1].trim();
+                System.out.println("ID extraído exitosamente: " + id);
+                return id; // Extraer el ID después de '#'
+            }
+            System.out.println("El dato no contiene un ID válido para registro.");
+            return null;
+        } catch (Exception e) {
+            System.err.println("Error al extraer ID de registro del mensaje: " + e.getMessage());
             return null;
         }
     }
 
-    private void sendFingerprintToAsistencia(String huellaDactilar) {
+    private String extractIdFromMessage(String data) {
+        System.out.println("Entrando a extractIdFromMessage con el dato: " + data);
         try {
-            String asistenciaUrl = "http://localhost:8080/asistencia/entrada/" + huellaDactilar;
+            if (data.startsWith("Huella identificada ID:")) {
+                String id = data.split(":")[1].trim();
+                System.out.println("ID extraído exitosamente: " + id);
+                return id; // Extraer el ID después de los dos puntos
+            }
+            System.out.println("El dato no contiene un ID válido para identificación.");
+            return null;
+        } catch (Exception e) {
+            System.err.println("Error al extraer ID de huella del mensaje: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private void handleHuellaIdentificada(String data) {
+        System.out.println("Entrando a handleHuellaIdentificada con el dato: " + data);
+        try {
+            String fingerprintId = extractIdFromMessage(data);
+            System.out.println("ID extraído del mensaje de identificación: " + fingerprintId);
+            if (fingerprintId != null) {
+                System.out.println("Enviando ID al backend para asistencia.");
+                sendFingerprintToAsistencia(fingerprintId);
+            } else {
+                System.out.println("Advertencia: ID duplicado o no válido detectado. Ignorando.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error al manejar huella identificada: " + e.getMessage());
+        }
+    }
+
+    private void sendFingerprintToAsistencia(String id) {
+        try {
+            String asistenciaUrl = BACKEND_URL_ASISTENCIA + id;
             System.out.println("Enviando ID de huella dactilar a la URL de asistencia: " + asistenciaUrl);
             restTemplate.postForObject(asistenciaUrl, null, Void.class);
             System.out.println("Envío a URL de asistencia exitoso.");
@@ -125,14 +189,13 @@ public class SerialReaderService {
         }
     }
 
-
     private void sendFingerprintToBackend(String huellaDactilar) {
         try {
             Empleado_Model empleado = new Empleado_Model();
             empleado.setHuellaDactilar(huellaDactilar);
 
             System.out.println("Enviando huella dactilar al backend: " + huellaDactilar);
-            Response<Empleado_Model> response = restTemplate.postForObject(BACKEND_URL, empleado, Response.class);
+            Response<Empleado_Model> response = restTemplate.postForObject(BACKEND_URL_HUELLA, empleado, Response.class);
 
             if (response != null) {
                 System.out.println("Respuesta del backend: " + response.getMessage());
@@ -155,5 +218,8 @@ public class SerialReaderService {
         }
     }
 
-
 }
+
+
+
+
