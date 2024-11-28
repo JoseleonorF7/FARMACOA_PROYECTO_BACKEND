@@ -2,10 +2,7 @@ package Package.PHARMACY_PROJECT.Services;
 
 import Package.PHARMACY_PROJECT.Models.Empleado_Model;
 import Package.PHARMACY_PROJECT.Response;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fazecast.jSerialComm.SerialPort;
-import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;

@@ -33,6 +33,7 @@ public class Horario_Model {
     // Constructor vacío
     public Horario_Model() {
     }
+
     // Constructor con atributos
     public Horario_Model(String descripcion, LocalTime horaFin1, LocalTime horaInicio2, LocalTime horaInicio1, LocalTime horaFin2) {
         this.descripcion = descripcion;

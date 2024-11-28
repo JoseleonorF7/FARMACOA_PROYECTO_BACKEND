@@ -35,23 +35,31 @@ public class Empleado_Model {
     private String huellaDactilar;  // Huella dactilar del empleado
 
     @ManyToOne
-    @JoinColumn(name = "horario_id", nullable = false)
+    @JoinColumn(name = "horario_id", nullable = true)
     private Horario_Model horario;  // Horario asignado al turno
+
+    @ManyToOne
+    @JoinColumn(name = "turnoProgramado_id", nullable = true)
+    private TurnoProgramado_Model turnoProgramado;  // Horario asignado al turno
 
     // Constructor vacío
     public Empleado_Model() {
     }
 
     // Constructor con todos los atributos excepto turnos
-    public Empleado_Model(Boolean activo, LocalDate fechaContratacion, String huellaDactilar,
-                          String identificacion, String nombre, String rol) {
+
+
+    public Empleado_Model(Boolean activo, LocalDate fechaContratacion, Horario_Model horario, String huellaDactilar, String identificacion, String nombre, String rol, TurnoProgramado_Model turnoProgramado) {
         this.activo = activo;
         this.fechaContratacion = fechaContratacion;
+        this.horario = horario;
         this.huellaDactilar = huellaDactilar;
         this.identificacion = identificacion;
         this.nombre = nombre;
         this.rol = rol;
+        this.turnoProgramado = turnoProgramado;
     }
+
     // Método para obtener el estado de "activo"
     public boolean isActivo() {
         return activo;

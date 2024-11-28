@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -65,39 +66,64 @@ public class Asistencia_Services {
         List<Asistencia_Model> asistenciasFiltradas = new ArrayList<>();
 
         for (Asistencia_Model asistencia : asistencias) {
-            // Obtener el mes de la fecha de la asistencia (formato YYYY-MM-DD)
-            String fecha = String.valueOf(asistencia.getFecha());  // "2024-11-10"
-            int mesAsistencia = Integer.parseInt(fecha.substring(5, 7));  // Extraemos el mes (posición 5 a 7)
+            // Obtener el mes de la fecha de la asistencia
+            String fecha = String.valueOf(asistencia.getFecha());
+            int mesAsistencia = Integer.parseInt(fecha.substring(5, 7));
 
             if (mesAsistencia == mes) {
                 // Si el mes coincide, añadimos la asistencia a la lista filtrada
                 asistenciasFiltradas.add(asistencia);
 
-                // Calcular y establecer las diferencias de tiempo
-                String diferenciaEntrada = asistencia.calcularDiferenciaTiempoEntrada();
-                asistencia.setDiferenciaTiempoEntrada(diferenciaEntrada);  // Establecer diferencia de entrada
+                // Obtener horarios del turno del empleado
+                LocalTime horaInicio1 = asistencia.getEmpleado().getHorario().getHoraInicio1();
+                LocalTime horaFin1 = asistencia.getEmpleado().getHorario().getHoraFin1();
+                LocalTime horaInicio2 = asistencia.getEmpleado().getHorario().getHoraInicio2();
+                LocalTime horaFin2 = asistencia.getEmpleado().getHorario().getHoraFin2();
 
-                String diferenciaSalida = asistencia.calcularDiferenciaTiempoSalida();
-                asistencia.setDiferenciaTiempoSalida(diferenciaSalida);  // Establecer diferencia de salida
+                // Calcular y establecer las diferencias de tiempo
+                String diferenciaEntrada = asistencia.calcularDiferenciaTiempoEntrada(horaInicio1, horaInicio2);
+                asistencia.setDiferenciaTiempoEntrada(diferenciaEntrada);
+
+                String diferenciaSalida = asistencia.getHoraSalida() != null
+                        ? asistencia.calcularDiferenciaTiempoSalida(horaFin1, horaFin2)
+                        : "No disponible";
+                asistencia.setDiferenciaTiempoSalida(diferenciaSalida);
             }
         }
 
         return asistenciasFiltradas;  // Retornar las asistencias filtradas
     }
+
+    public Optional<Asistencia_Model> findUltimaAsistenciaRegistrada(Empleado_Model empleado) {
+        return asistenciaRepository.findTopByEmpleadoOrderByHoraEntradaDesc(empleado);
+    }
+
+
     @Transactional
     public void deleteAll() {
         asistenciaRepository.deleteAll();
         asistenciaRepository.resetAutoIncrement(); // Si tu repositorio tiene un método para resetear el auto increment
     }
 
+
     public ReporteConsolidado obtenerReporteConsolidado() {
         List<Asistencia_Model> asistencias = findAll();
+
         // Calcular la diferencia de tiempo para entrada y salida
         for (Asistencia_Model asistencia : asistencias) {
-            String diferenciaEntrada = asistencia.calcularDiferenciaTiempoEntrada();
+            // Obtener horarios del turno del empleado
+            LocalTime horaInicio1 = asistencia.getEmpleado().getHorario().getHoraInicio1();
+            LocalTime horaFin1 = asistencia.getEmpleado().getHorario().getHoraFin1();
+            LocalTime horaInicio2 = asistencia.getEmpleado().getHorario().getHoraInicio2();
+            LocalTime horaFin2 = asistencia.getEmpleado().getHorario().getHoraFin2();
+
+            // Calcular y establecer las diferencias de tiempo
+            String diferenciaEntrada = asistencia.calcularDiferenciaTiempoEntrada(horaInicio1, horaInicio2);
             asistencia.setDiferenciaTiempoEntrada(diferenciaEntrada);
 
-            String diferenciaSalida = asistencia.calcularDiferenciaTiempoSalida();
+            String diferenciaSalida = asistencia.getHoraSalida() != null
+                    ? asistencia.calcularDiferenciaTiempoSalida(horaFin1, horaFin2)
+                    : "No disponible";
             asistencia.setDiferenciaTiempoSalida(diferenciaSalida);
         }
 

@@ -33,7 +33,7 @@ public class Horario_Controller {
     }
 
     // Endpoint para obtener todos los horarios
-    @GetMapping("/listar")
+    @GetMapping("/all")
     public ResponseEntity<Response<List<Horario_Model>>> getAllHorarios() {
         try {
             List<Horario_Model> horarios = horarioServices.getAllHorarios();
@@ -88,4 +88,34 @@ public class Horario_Controller {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
+    // Endpoint para actualizar un horario por ID
+    @PutMapping("/actualizar/{id}")
+    public ResponseEntity<Response<Horario_Model>> updateHorario(@PathVariable Long id, @RequestBody Horario_Model horarioDetails) {
+        try {
+            // Buscar el horario existente por ID
+            Optional<Horario_Model> horarioOpt = horarioServices.getHorarioById(id);
+            if (!horarioOpt.isPresent()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new Response<>("404", "Horario no encontrado", null, "HORARIO_NOT_FOUND"));
+            }
+
+            // Actualizar los campos del horario existente
+            Horario_Model horario = horarioOpt.get();
+            horario.setHoraInicio1(horarioDetails.getHoraInicio1());
+            horario.setHoraFin1(horarioDetails.getHoraFin1());
+            horario.setHoraInicio2(horarioDetails.getHoraInicio2());
+            horario.setHoraFin2(horarioDetails.getHoraFin2());
+            horario.setDescripcion(horarioDetails.getDescripcion());
+
+            // Guardar los cambios
+            Horario_Model updatedHorario = horarioServices.saveHorario(horario);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(new Response<>("200", "Horario actualizado exitosamente", updatedHorario, "HORARIO_UPDATED"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new Response<>("500", "Error al actualizar horario: " + e.getMessage(), null, "ERROR_UPDATING_HORARIO"));
+        }
+    }
+
 }

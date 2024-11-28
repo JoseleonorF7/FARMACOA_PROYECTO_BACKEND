@@ -11,9 +11,6 @@ public interface TurnoProgramado_Repository extends JpaRepository<TurnoProgramad
     // Método para obtener todos los turnos programados
     List<TurnoProgramado_Model> findAll();
 
-    // Método para obtener turnos por empleado
-    List<TurnoProgramado_Model> findByEmpleadoId(Long id);
-
     // Método para obtener turnos por fecha
     List<TurnoProgramado_Model> findByFecha(java.time.LocalDate fecha);
 }

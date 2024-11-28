@@ -32,9 +32,6 @@ public class TurnoProgramado_Controller {
     @Autowired
     private Horario_Services horarioServices;
 
-
-
-
     // Endpoint para listar todos los horarios
     @GetMapping("/horarios")
     public ResponseEntity<Response<List<Horario_Model>>> listarHorarios() {
@@ -49,46 +46,17 @@ public class TurnoProgramado_Controller {
     }
 
     // Endpoint para asignar turnos programados
-    @PostMapping("/asignar/{identificacion}")
-    public ResponseEntity<Response<TurnoProgramado_Model>> asignarTurno(
-            @PathVariable String identificacion, @RequestBody TurnoProgramado_Model turnoProgramadoModel) {
+    @PostMapping("/asignar")
+    public ResponseEntity<Response<TurnoProgramado_Model>> asignarTurno(@RequestBody TurnoProgramado_Model turnoProgramadoModel) {
         try {
-            // Buscar el empleado por identificación
-            Optional<Empleado_Model> empleadoOpt = empleadoServices.findByIdentificacion(identificacion);
-
-            if (!empleadoOpt.isPresent()) {
-                // Si el empleado no se encuentra, retornar error 404
-                Response<TurnoProgramado_Model> response = new Response<>(
-                        "404", "Empleado no encontrado con identificación: " + identificacion, null, "EMPLEADO_NOT_FOUND"
-                );
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-            }
-
-            // Obtener el empleado
-            Empleado_Model empleado = empleadoOpt.get();
-            logger.info("Empleado encontrado: {} con identificación: {}", empleado.getNombre(), empleado.getIdentificacion());
-
-            // Asignar el empleado al turno programado
-            turnoProgramadoModel.setEmpleado(empleado);
-
-            // Guardar el turno programado
             TurnoProgramado_Model turnoGuardado = turnoProgramadoService.saveTurnoProgramado(turnoProgramadoModel);
-
-            // Responder con éxito
-            Response<TurnoProgramado_Model> response = new Response<>(
-                    "200", "Turno asignado correctamente", turnoGuardado, "TURN_ASSIGNED"
-            );
+            Response<TurnoProgramado_Model> response = new Response<>("200", "Turno programado asignado satisfactoriamente", turnoGuardado, "TURNO_ASSIGNED");
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
-            // Registrar error y devolver mensaje genérico
-            logger.error("Error al asignar turno al empleado: {}", e.getMessage(), e);
-            Response<TurnoProgramado_Model> response = new Response<>(
-                    "500", "Error al asignar turno: " + e.getMessage(), null, "INTERNAL_SERVER_ERROR"
-            );
+            Response<TurnoProgramado_Model> response = new Response<>("500", "Error al asignar turno: " + e.getMessage(), null, "INTERNAL_SERVER_ERROR");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-
 
     // Endpoint para listar todos los turnos programados
     @GetMapping("/turnos")

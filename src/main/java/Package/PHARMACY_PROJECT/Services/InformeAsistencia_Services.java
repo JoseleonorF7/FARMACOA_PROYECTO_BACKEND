@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -171,18 +172,30 @@ public class InformeAsistencia_Services {
 
         // Agregar las filas de la tabla
         for (Asistencia_Model asistencia : asistencias) {
+            // Obtener horarios del turno del empleado
+            LocalTime horaInicio1 = asistencia.getEmpleado().getHorario().getHoraInicio1();
+            LocalTime horaFin1 = asistencia.getEmpleado().getHorario().getHoraFin1();
+            LocalTime horaInicio2 = asistencia.getEmpleado().getHorario().getHoraInicio2();
+            LocalTime horaFin2 = asistencia.getEmpleado().getHorario().getHoraFin2();
+
+            // Calcular diferencias de tiempo para entrada y salida
+            String diferenciaEntrada = asistencia.calcularDiferenciaTiempoEntrada(horaInicio1, horaInicio2);
+            String diferenciaSalida = asistencia.getHoraSalida() != null
+                    ? asistencia.calcularDiferenciaTiempoSalida(horaFin1, horaFin2)
+                    : "No disponible";
+
+            // Agregar celdas de la tabla
             table.addCell(new Cell().add(new Paragraph(asistencia.getFecha().toString())));
             table.addCell(new Cell().add(new Paragraph(asistencia.getTipoRegistro())));
             table.addCell(new Cell().add(new Paragraph(asistencia.getHoraEntrada() != null ? asistencia.getHoraEntrada().toString() : "No disponible")));
             table.addCell(new Cell().add(new Paragraph(asistencia.getHoraSalida() != null ? asistencia.getHoraSalida().toString() : "No disponible")));
             table.addCell(new Cell().add(new Paragraph(asistencia.getEstado())));
-            table.addCell(new Cell().add(new Paragraph(
-                    asistencia.calcularDiferenciaTiempoEntrada() + " / " +
-                            (asistencia.getHoraSalida() != null ? asistencia.calcularDiferenciaTiempoSalida() : "No disponible")
-            )));
+            table.addCell(new Cell().add(new Paragraph(diferenciaEntrada + " / " + diferenciaSalida)));
         }
+
         return table;
     }
+
 
 
 //--------------------------------------------------------------------------------------------

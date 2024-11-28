@@ -16,10 +16,6 @@ public class TurnoProgramado_Model {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;  // ID autoincremental
 
-    @ManyToOne
-    @JoinColumn(name = "empleado_id", nullable = false)
-    private Empleado_Model empleado;  // Empleado asignado al turno
-
     @Column(name = "fecha", nullable = true)
     private LocalDate fecha;  // Fecha específica del turno
 
@@ -35,8 +31,7 @@ public class TurnoProgramado_Model {
 
 
 
-    public TurnoProgramado_Model(Empleado_Model empleado, LocalTime horaFin, LocalDate fecha, LocalTime horaInicio) {
-        this.empleado = empleado;
+    public TurnoProgramado_Model(LocalTime horaFin, LocalDate fecha, LocalTime horaInicio) {
         this.horaFin = horaFin;
         this.fecha = fecha;
         this.horaInicio = horaInicio;

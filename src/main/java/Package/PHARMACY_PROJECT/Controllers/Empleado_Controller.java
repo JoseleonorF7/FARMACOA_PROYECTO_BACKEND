@@ -128,6 +128,7 @@ public class Empleado_Controller {
             // Verificar si ya existe un empleado con la misma identificación
             Optional<Empleado_Model> empleadoConIdentificacion = empleadoServices.findByIdentificacion(empleadoData.getIdentificacion());
 
+
             if (empleadoConIdentificacion.isPresent()) {
                 // Si el empleado ya existe con esa identificación, retornar un mensaje
                 Response<Empleado_Model> response = new Response<>("400", "Empleado con esa identificación ya existe", null, "EMPLEADO_DUPLICADO");
@@ -145,6 +146,8 @@ public class Empleado_Controller {
                 empleado.setFechaContratacion(empleadoData.getFechaContratacion());
                 empleado.setActivo(empleadoData.getActivo());
                 empleado.setRol(empleadoData.getRol());
+                empleado.setHorario(empleadoData.getHorario());
+                empleado.setTurnoProgramado(empleadoData.getTurnoProgramado());
 
                 Empleado_Model empleadoGuardado = empleadoServices.save(empleado);
 
@@ -167,6 +170,7 @@ public class Empleado_Controller {
 
     @PutMapping("/actualizar/{identificacion}")
     public ResponseEntity<Response<Empleado_Model>> updateEmpleadoByIdentificacion(
+
             @PathVariable String identificacion, @RequestBody Empleado_Model empleadoData) {
         try {
             // Buscar empleado por identificación
@@ -193,8 +197,7 @@ public class Empleado_Controller {
                     empleado.setRol(empleadoData.getRol());
                     cambiosRealizados = true;
                 }
-                if (empleadoData.getHorario() != null
-                        && !empleadoData.getHorario().equals(empleado.getHorario())) {
+                if (empleadoData.getHorario() != null && !empleadoData.getHorario().equals(empleado.getHorario())) {
                     // Validar que el horario existe
                     Optional<Horario_Model> horarioExistente = horarioServices.getHorarioById(empleadoData.getHorario().getId());
                     if (horarioExistente.isPresent()) {
@@ -210,6 +213,7 @@ public class Empleado_Controller {
                         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
                     }
                 }
+
 
                 // Si no se realizaron cambios, devolver respuesta adecuada
                 if (!cambiosRealizados) {
@@ -253,6 +257,7 @@ public class Empleado_Controller {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
 
     // Método para eliminar un empleado por identificación
     @DeleteMapping("/eliminar/{identificacion}")

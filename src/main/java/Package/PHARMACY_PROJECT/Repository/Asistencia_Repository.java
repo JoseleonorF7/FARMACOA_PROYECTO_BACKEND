@@ -23,4 +23,6 @@ public interface Asistencia_Repository extends JpaRepository<Asistencia_Model, L
     @Transactional
     @Query(value = "ALTER TABLE asistencias AUTO_INCREMENT = 1", nativeQuery = true)
     void resetAutoIncrement();
+
+    Optional<Asistencia_Model> findTopByEmpleadoOrderByHoraEntradaDesc(Empleado_Model empleado);
 }

@@ -43,10 +43,7 @@ public class TurnoProgramado_Services {
         return turnoProgramadoRepository.findAll();
     }
 
-    // Método para obtener los turnos programados por empleado
-    public List<TurnoProgramado_Model> getTurnosByEmpleado(Long empleadoId) {
-        return turnoProgramadoRepository.findByEmpleadoId(empleadoId);
-    }
+
 
     // Método para obtener los turnos programados por fecha
     public List<TurnoProgramado_Model> getTurnosByFecha(java.time.LocalDate fecha) {

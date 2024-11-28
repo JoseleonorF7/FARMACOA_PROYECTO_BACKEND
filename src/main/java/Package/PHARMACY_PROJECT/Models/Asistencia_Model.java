@@ -37,6 +37,12 @@ public class Asistencia_Model {
     @Column(name = "hora_salida")
     private LocalTime horaSalida; // Hora de salida (si corresponde)
 
+    @Transient
+    private LocalTime horaEntrada2;
+
+    @Transient
+    private LocalTime horaSalida2;
+
     @Column(name = "estado", nullable = false, length = 20)
     private String estado; // Estado de la asistencia (temprano, puntual, tarde)
 
@@ -48,6 +54,15 @@ public class Asistencia_Model {
 
     @Transient
     private String diferenciaTiempoSalida;
+
+
+    @Transient
+    private String diferenciaTiempoEntrada2; // Diferencia de tiempo, no persistente en la base de datos
+
+    @Transient
+    private String diferenciaTiempoSalida2;
+
+
     // Constructor vacío
     public Asistencia_Model() {}
 
@@ -77,69 +92,41 @@ public class Asistencia_Model {
         }
 }
 
-    public String calcularDiferenciaTiempoEntrada() {
+    public String calcularDiferenciaTiempoEntrada(LocalTime horaReferenciaEntrada1, LocalTime horaReferenciaEntrada2) {
+        // Verifica si horaEntrada o horaEntrada2 están registradas y calcula en cada caso.
         if (horaEntrada != null) {
-            long diferenciaEntrada = ChronoUnit.MINUTES.between(HORA_REFERENCIA_ENTRADA, horaEntrada);
-
-            // Caso para "temprano"
-            if (diferenciaEntrada < RANGO_TEMPRANO) {
-                long horasTemprano = Math.abs(diferenciaEntrada) / 60; // Calcular horas
-                long minutosTemprano = Math.abs(diferenciaEntrada) % 60; // Calcular minutos
-                if (horasTemprano > 0) {
-                    return "Temprano por " + horasTemprano + " hora(s) y " + minutosTemprano + " minuto(s)";
-                } else {
-                    return "Temprano por " + minutosTemprano + " minuto(s)";
-                }
-            }
-            // Caso para "tarde"
-            else if (diferenciaEntrada > RANGO_TARDE) {
-                long horasTarde = diferenciaEntrada / 60; // Calcular horas
-                long minutosTarde = diferenciaEntrada % 60; // Calcular minutos
-                if (horasTarde > 0) {
-                    return "Tarde por " + horasTarde + " hora(s) y " + minutosTarde + " minuto(s)";
-                } else {
-                    return "Tarde por " + minutosTarde + " minuto(s)";
-                }
-            }
-            // Caso para "puntual"
-            else {
-                return "Puntual";
-            }
+            return calcularDiferencia(horaReferenciaEntrada1, horaEntrada);
+        } else if (horaEntrada2 != null) {
+            return calcularDiferencia(horaReferenciaEntrada2, horaEntrada2);
         }
         return "No disponible";
     }
 
-    // Método para calcular la diferencia de tiempo para la salida
-    public String calcularDiferenciaTiempoSalida() {
+    public String calcularDiferenciaTiempoSalida(LocalTime horaReferenciaSalida1, LocalTime horaReferenciaSalida2) {
+        // Verifica si horaSalida o horaSalida2 están registradas y calcula en cada caso.
         if (horaSalida != null) {
-            long diferenciaSalida = ChronoUnit.MINUTES.between(HORA_REFERENCIA_SALIDA, horaSalida);
-
-            // Caso para "temprano"
-            if (diferenciaSalida < RANGO_TEMPRANO) {
-                long horasTemprano = Math.abs(diferenciaSalida) / 60; // Calcular horas
-                long minutosTemprano = Math.abs(diferenciaSalida) % 60; // Calcular minutos
-                if (horasTemprano > 0) {
-                    return "Temprano por " + horasTemprano + " hora(s) y " + minutosTemprano + " minuto(s)";
-                } else {
-                    return "Temprano por " + minutosTemprano + " minuto(s)";
-                }
-            }
-            // Caso para "tarde"
-            else if (diferenciaSalida > RANGO_TARDE) {
-                long horasTarde = diferenciaSalida / 60; // Calcular horas
-                long minutosTarde = diferenciaSalida % 60; // Calcular minutos
-                if (horasTarde > 0) {
-                    return "Tarde por " + horasTarde + " hora(s) y " + minutosTarde + " minuto(s)";
-                } else {
-                    return "Tarde por " + minutosTarde + " minuto(s)";
-                }
-            }
-            // Caso para "puntual"
-            else {
-                return "Puntual";
-            }
+            return calcularDiferencia(horaReferenciaSalida1, horaSalida);
+        } else if (horaSalida2 != null) {
+            return calcularDiferencia(horaReferenciaSalida2, horaSalida2);
         }
         return "No disponible";
+    }
+
+    // Método privado para calcular la diferencia de tiempo
+    private String calcularDiferencia(LocalTime referencia, LocalTime actual) {
+        long diferencia = ChronoUnit.MINUTES.between(referencia, actual);
+
+        if (diferencia < RANGO_TEMPRANO) { // Temprano
+            long horasTemprano = Math.abs(diferencia) / 60;
+            long minutosTemprano = Math.abs(diferencia) % 60;
+            return horasTemprano > 0 ? "Temprano por " + horasTemprano + " hora(s) y " + minutosTemprano + " minuto(s)" : "Temprano por " + minutosTemprano + " minuto(s)";
+        } else if (diferencia > RANGO_TARDE) { // Tarde
+            long horasTarde = diferencia / 60;
+            long minutosTarde = diferencia % 60;
+            return horasTarde > 0 ? "Tarde por " + horasTarde + " hora(s) y " + minutosTarde + " minuto(s)" : "Tarde por " + minutosTarde + " minuto(s)";
+        } else { // Puntual
+            return "Puntual";
+        }
     }
 
 }
