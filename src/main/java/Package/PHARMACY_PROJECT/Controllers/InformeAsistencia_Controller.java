@@ -134,7 +134,7 @@ public class InformeAsistencia_Controller {
         String subject = "Reporte de Asistencia";
         String body = "Este es el reporte que se generó en base a la frecuencia seleccionada. Fecha de envío: "
                 + fechaEnvio.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
-        emailService.sendSimpleMessage("correo@fijo.com", subject, body);
+        emailService.sendSimpleMessage("farmacenterlasuperdrogueria@gmail.com", subject, body);
         correoEnviado = true;
     }
 
