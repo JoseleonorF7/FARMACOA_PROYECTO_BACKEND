@@ -2,31 +2,27 @@ package Package.PHARMACY_PROJECT.Controllers;
 
 import Package.PHARMACY_PROJECT.Models.Asistencia_Model;
 import Package.PHARMACY_PROJECT.Models.Empleado_Model;
-import Package.PHARMACY_PROJECT.Models.Horario_Model;
-import Package.PHARMACY_PROJECT.Models.Reportes.EmpleadoRanking;
-import Package.PHARMACY_PROJECT.Models.Reportes.EmpleadoReporte;
-import Package.PHARMACY_PROJECT.Models.Reportes.PromedioMensual;
-import Package.PHARMACY_PROJECT.Models.Reportes.ReporteConsolidado;
+import Package.PHARMACY_PROJECT.Models.Reportes.ComparativaAsistencia_DTO;
+import Package.PHARMACY_PROJECT.Models.Reportes.ReporteEmpleado_DTO;
+import Package.PHARMACY_PROJECT.Models.Reportes.ReporteMensual_DTO;
 import Package.PHARMACY_PROJECT.Services.Asistencia_Services;
 import Package.PHARMACY_PROJECT.Response;
 import Package.PHARMACY_PROJECT.Services.Empleado_Services;
 import Package.PHARMACY_PROJECT.Services.Horario_Services;
+import Package.PHARMACY_PROJECT.Services.InformeAsistencia_PDF_Services;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +48,9 @@ public class Asistencia_Controller {
 
     @Autowired
     private Horario_Services horarioServices;
+
+    @Autowired
+    private InformeAsistencia_PDF_Services informeAsistenciaPDFServices;
 
     // Método para registrar la entrada del empleado
     @PostMapping("/entrada/{huella}")
@@ -80,8 +79,16 @@ public class Asistencia_Controller {
         // Validar y registrar la entrada para el primer bloque
         Optional<Asistencia_Model> asistencia1Optional = asistenciaServices.findByEmpleadoAndFechaAndTipoRegistro(empleado, fechaActual, "ENTRADA_1");
         if (!asistencia1Optional.isPresent()) {
+            // Calcular la diferencia de tiempo
+
+            LocalTime horaInicio1 = empleado.getHorario().getHoraInicio1();
             String estadoEntrada1 = calcularEstadoEntrada(empleado, horaEntradaActual, 1);
-            Asistencia_Model asistencia1 = new Asistencia_Model(empleado, fechaActual, horaEntradaActual, null, estadoEntrada1, "ENTRADA_1");
+            Asistencia_Model asistencia1 = new Asistencia_Model(empleado, fechaActual, horaEntradaActual, estadoEntrada1, "ENTRADA_1");
+
+            // Calcular la diferencia de tiempo de entrada y establecerla
+            String diferenciaEntrada1 = asistencia1.calcularDiferenciaTiempoEntrada(empleado.getHorario().getHoraInicio1(), null);
+            asistencia1.setDiferenciaTiempoEntrada(diferenciaEntrada1);
+
             asistenciaServices.save(asistencia1);
             logger.info("Entrada registrada para el primer bloque de horario del empleado: " + empleado.getNombre());
         } else {
@@ -98,15 +105,22 @@ public class Asistencia_Controller {
                 if (ultimaAsistencia.isPresent()) {
                     LocalTime ultimaHoraEntrada = ultimaAsistencia.get().getHoraEntrada();
                     if (ultimaHoraEntrada != null && ChronoUnit.MINUTES.between(ultimaHoraEntrada, horaEntradaActual) < 10) {
-                        logger.error("Las entradas no pueden registrarse con menos de 5 minutos de diferencia.");
+                        logger.error("Las entradas no pueden registrarse con menos de 10 minutos de diferencia.");
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                                 .body(new Response<>("400", "Intento de doble registro en un intervalo corto", null, "REGISTRO_DUPLICADO"));
                     }
                 }
 
+
                 String estadoEntrada2 = calcularEstadoEntrada(empleado, horaEntradaActual, 2);
-                Asistencia_Model asistencia2 = new Asistencia_Model(empleado, fechaActual, horaEntradaActual, null, estadoEntrada2, "ENTRADA_2");
+                Asistencia_Model asistencia2 = new Asistencia_Model(empleado, fechaActual, horaEntradaActual, estadoEntrada2, "ENTRADA_2");
+
+                // Calcular la diferencia de tiempo de entrada y establecerla
+                String diferenciaEntrada2 = asistencia2.calcularDiferenciaTiempoEntrada(empleado.getHorario().getHoraInicio2(), null);
+                asistencia2.setDiferenciaTiempoEntrada(diferenciaEntrada2);
+
                 asistenciaServices.save(asistencia2);
+
                 logger.info("Entrada registrada para el segundo bloque de horario del empleado: " + empleado.getNombre());
             } else {
                 logger.warn("La entrada para el segundo bloque ya fue registrada.");
@@ -117,63 +131,20 @@ public class Asistencia_Controller {
                 .body(new Response<>("200", "Entrada registrada", null, "ENTRADA_REGISTRADA"));
     }
 
+    @GetMapping("/todas")
+    public ResponseEntity<Response<List<Asistencia_Model>>> obtenerTodasLasAsistencias() {
+        try {
+            List<Asistencia_Model> asistencias = asistenciaServices.findAll();
 
-    @PostMapping("/salida/{huella}")
-    public ResponseEntity<Response<Asistencia_Model>> registrarSalida(@PathVariable String huella) {
-        // Buscar el empleado por huella dactilar
-        Optional<Empleado_Model> empleadoOptional = empleadoServices.findByHuellaDactilar(huella);
-        if (!empleadoOptional.isPresent()) {
-            logger.error("Empleado no encontrado para la huella: " + huella);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new Response<>("404", "Empleado no encontrado", null, "EMPLEADO_NO_ENCONTRADO"));
+
+
+            Response<List<Asistencia_Model>> response = new Response<>("200", "Asistencias obtenidas satisfactoriamente", asistencias, "ASISTENCIAS_OBTENIDAS");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            logger.error("Error al obtener todas las asistencias", e);
+            Response<List<Asistencia_Model>> response = new Response<>("500", "Error al obtener las asistencias", null, "ERROR_DB");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-
-        Empleado_Model empleado = empleadoOptional.get();
-
-        // Verificar si el empleado está activo
-        if (!empleado.isActivo()) {
-            logger.error("Empleado no activo: " + empleado.getNombre());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new Response<>("400", "Empleado no activo", null, "EMPLEADO_INACTIVO"));
-        }
-
-        // Obtener la fecha y hora actuales
-        LocalDate fechaActual = LocalDate.now();
-        LocalTime horaSalidaActual = LocalTime.now();
-
-        // Verificar y registrar salida para el primer bloque
-        Optional<Asistencia_Model> entrada1Optional = asistenciaServices.findByEmpleadoAndFechaAndTipoRegistro(empleado, fechaActual, "ENTRADA_1");
-        if (entrada1Optional.isPresent()) {
-            Optional<Asistencia_Model> salida1Optional = asistenciaServices.findByEmpleadoAndFechaAndTipoRegistro(empleado, fechaActual, "SALIDA_1");
-            if (!salida1Optional.isPresent()) {
-                String estadoSalida1 = calcularEstadoSalida(empleado, horaSalidaActual, 1);
-                Asistencia_Model salida1 = new Asistencia_Model(empleado, fechaActual, null, horaSalidaActual, estadoSalida1, "SALIDA_1");
-                asistenciaServices.save(salida1);
-                logger.info("Salida registrada para el primer bloque de horario del empleado: " + empleado.getNombre());
-                return ResponseEntity.status(HttpStatus.OK)
-                        .body(new Response<>("200", "Salida registrada", salida1, "SALIDA_REGISTRADA"));
-            }
-        }
-
-        // Verificar y registrar salida para el segundo bloque si aplica
-        if (empleado.getHorario().getHoraInicio2() != null) {
-            Optional<Asistencia_Model> entrada2Optional = asistenciaServices.findByEmpleadoAndFechaAndTipoRegistro(empleado, fechaActual, "ENTRADA_2");
-            if (entrada2Optional.isPresent()) {
-                Optional<Asistencia_Model> salida2Optional = asistenciaServices.findByEmpleadoAndFechaAndTipoRegistro(empleado, fechaActual, "SALIDA_2");
-                if (!salida2Optional.isPresent()) {
-                    String estadoSalida2 = calcularEstadoSalida(empleado, horaSalidaActual, 2);
-                    Asistencia_Model salida2 = new Asistencia_Model(empleado, fechaActual, null, horaSalidaActual, estadoSalida2, "SALIDA_2");
-                    asistenciaServices.save(salida2);
-                    logger.info("Salida registrada para el segundo bloque de horario del empleado: " + empleado.getNombre());
-                    return ResponseEntity.status(HttpStatus.OK)
-                            .body(new Response<>("200", "Salida registrada", salida2, "SALIDA_REGISTRADA"));
-                }
-            }
-        }
-
-        logger.error("No se puede registrar la salida: asegúrese de registrar primero la entrada correspondiente.");
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new Response<>("400", "No se puede registrar la salida", null, "SALIDA_INVALIDA"));
     }
 
 
@@ -194,18 +165,6 @@ public class Asistencia_Controller {
     }
 
 
-    public String calcularEstadoSalida(Empleado_Model empleado, LocalTime horaSalida, int bloque) {
-        LocalTime horaBloque = (bloque == 1) ? empleado.getHorario().getHoraFin1() : empleado.getHorario().getHoraFin2();
-        if (horaBloque == null) return "INVALIDO";
-
-        long diferenciaMinutos = ChronoUnit.MINUTES.between(horaBloque, horaSalida);
-
-        if (diferenciaMinutos < RANGO_TEMPRANO) return "TEMPRANO";
-        if (diferenciaMinutos > RANGO_TARDE) return "TARDE";
-        return "PUNTUAL";
-    }
-    // Métodos existentes
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Response<Void>> deleteAsistencia(@PathVariable Long id) {
         try {
@@ -218,129 +177,95 @@ public class Asistencia_Controller {
         }
     }
 
-    @GetMapping("/todas")
-    public ResponseEntity<Response<List<Asistencia_Model>>> obtenerTodasLasAsistencias() {
+
+    @GetMapping("/empleadosTodos")
+    public ResponseEntity<byte[]> reporteGeneralTodos(@RequestParam Integer mes) {
         try {
-            List<Asistencia_Model> asistencias = asistenciaServices.findAll();
+            // Log para ver el mes que se pasa al servicio
+            logger.info("Generando reporte para el mes: {}", mes);
 
-            for (Asistencia_Model asistencia : asistencias) {
-                // Obteniendo horarios según el turno del empleado
-                LocalTime horaInicio1 = asistencia.getEmpleado().getHorario().getHoraInicio1();
-                LocalTime horaFin1 = asistencia.getEmpleado().getHorario().getHoraFin1();
-                LocalTime horaInicio2 = asistencia.getEmpleado().getHorario().getHoraInicio2();
-                LocalTime horaFin2 = asistencia.getEmpleado().getHorario().getHoraFin2();
+            // Llamada al servicio para obtener el reporte consolidado
 
-                // Calcular diferencias de entrada y salida
-                String diferenciaEntrada = asistencia.calcularDiferenciaTiempoEntrada(horaInicio1, horaInicio2);
-                asistencia.setDiferenciaTiempoEntrada(diferenciaEntrada);
+            // Llamada al servicio para generar el PDF
 
-                String diferenciaSalida = asistencia.calcularDiferenciaTiempoSalida(horaFin1, horaFin2);
-                asistencia.setDiferenciaTiempoSalida(diferenciaSalida);
-            }
-
-            Response<List<Asistencia_Model>> response = new Response<>("200", "Asistencias obtenidas satisfactoriamente", asistencias, "ASISTENCIAS_OBTENIDAS");
-            return ResponseEntity.status(HttpStatus.OK).body(response);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(null);
         } catch (Exception e) {
-            logger.error("Error al obtener todas las asistencias", e);
-            Response<List<Asistencia_Model>> response = new Response<>("500", "Error al obtener las asistencias", null, "ERROR_DB");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            logger.error("Error al generar el reporte", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
-    @GetMapping("/todas/reporte")
-    public ResponseEntity<Response<ReporteConsolidado>> obtenerTodasLasAsistenciasReporte() {
+    @GetMapping("/reporteMensual")
+    public ResponseEntity<ReporteMensual_DTO> obtenerReporteMensual(@RequestParam Integer mes, @RequestParam Integer ano) {
         try {
-            ReporteConsolidado reporteConsolidado = asistenciaServices.obtenerReporteConsolidado();
+            // Llama al servicio para obtener el reporte mensual
+            ReporteMensual_DTO reporte = asistenciaServices.obtenerReporteGeneralMensual(mes, ano);
 
-            Response<ReporteConsolidado> response = new Response<>();
-            response.setCode("200");
-            response.setMessage("Reporte generado exitosamente");
-            response.setData(reporteConsolidado);
-            response.setStatus("OK");
-
-            return ResponseEntity.status(HttpStatus.OK).body(response);
-
+            // Retorna el reporte como respuesta con código 200 (OK)
+            return ResponseEntity.ok(reporte);
         } catch (Exception e) {
-            logger.error("Error al obtener todas las asistencias", e);
-
-            Response<ReporteConsolidado> response = new Response<>(
-                    "500",
-                    "Error al obtener las asistencias",
-                    null,
-                    "ERROR_DB"
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            // Maneja el error y retorna un mensaje de error detallado
+            logger.error("Error al obtener el reporte consolidado", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);  // O también puedes retornar un objeto de error con un mensaje más descriptivo
         }
     }
 
-    public ReporteConsolidado generarReporte(List<Asistencia_Model> asistencias) {
-        Map<String, EmpleadoReporte> reportePorEmpleado = new HashMap<>();
-        Map<YearMonth, PromedioMensual> promediosMensuales = new HashMap<>();
+    @GetMapping("/reporteEmpleadoMensual")
+    public ResponseEntity<ReporteEmpleado_DTO> obtenerReporteEmpleadoMensual(
+            @RequestParam Long empleadoId,
+            @RequestParam Integer mes,
+            @RequestParam Integer anio) {
+        try {
+            // Llama al servicio para obtener el reporte del empleado específico
+            ReporteEmpleado_DTO reporteEmpleado = asistenciaServices.obtenerReporteEmpleadoMensual(empleadoId,mes,anio);
 
-        // Procesar cada registro de asistencia
-        for (Asistencia_Model asistencia : asistencias) {
-            String empleadoIdentificacion = asistencia.getEmpleado().getIdentificacion();
-
-            if (empleadoIdentificacion == null || empleadoIdentificacion.isEmpty()) {
-                logger.warn("Registro de asistencia con nombre de empleado nulo o vacío");
-                continue;
-            }
-
-            YearMonth mesAnio = YearMonth.from(asistencia.getFecha());
-            EmpleadoReporte datosEmpleado = reportePorEmpleado.computeIfAbsent(
-                    empleadoIdentificacion,
-                    k -> new EmpleadoReporte(empleadoIdentificacion)
-            );
-
-            if ("TARDE".equalsIgnoreCase(asistencia.getEstado()) && "ENTRADA".equalsIgnoreCase(asistencia.getTipoRegistro())) {
-                long minutosTarde = EmpleadoRanking.extraerMinutos(asistencia.getDiferenciaTiempoEntrada());
-                datosEmpleado.acumularTardanza(minutosTarde);
-                promediosMensuales.computeIfAbsent(mesAnio, k -> new PromedioMensual()).acumularTardanzaEntrada(minutosTarde);
-            } else if ("TEMPRANO".equalsIgnoreCase(asistencia.getEstado()) && "SALIDA".equalsIgnoreCase(asistencia.getTipoRegistro())) {
-                long minutosTemprano = EmpleadoRanking.extraerMinutos(asistencia.getDiferenciaTiempoSalida());
-                datosEmpleado.acumularSalidaTemprana(minutosTemprano);
-                promediosMensuales.computeIfAbsent(mesAnio, k -> new PromedioMensual()).acumularSalidaTemprana(minutosTemprano);
-            }
+            // Retorna el reporte como respuesta con código 200 (OK)
+            return ResponseEntity.ok(reporteEmpleado);
+        } catch (Exception e) {
+            // Maneja el error y retorna un mensaje de error detallado
+            logger.error("Error al obtener el reporte del empleado", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);  // O puedes retornar un objeto de error con un mensaje más descriptivo
         }
-
-        // Calcular rankings para tardanzas y salidas tempranas
-        List<EmpleadoRanking> rankingTardanzas = generarRanking(reportePorEmpleado, true);
-        List<EmpleadoRanking> rankingSalidasTempranas = generarRanking(reportePorEmpleado, false);
-
-        // Calcular promedios mensuales
-        calcularPromediosMensuales(promediosMensuales);
-
-        // Crear reporte final consolidado
-        ReporteConsolidado reporteFinal = new ReporteConsolidado(reportePorEmpleado, rankingTardanzas, rankingSalidasTempranas, promediosMensuales);
-        logger.info("Reporte final generado con éxito");
-        return reporteFinal;
-    }
-    // Genera el ranking en base a tardanzas (true) o salidas tempranas (false)
-    private List<EmpleadoRanking> generarRanking(Map<String, EmpleadoReporte> reportePorEmpleado, boolean esTardanza) {
-        return reportePorEmpleado.values().stream()
-                .map(emp -> {
-                    EmpleadoRanking ranking = new EmpleadoRanking(emp.getIdentificacionEmpleado());
-                    if (esTardanza) {
-                        ranking.acumularMinutosTardeEntrada(emp.getTotalMinutosTardeEntrada());
-                        logger.debug("Empleado {} tiene acumulado {} minutos tarde", emp.getIdentificacionEmpleado(), emp.getTotalMinutosTardeEntrada());
-                    } else {
-                        ranking.acumularMinutosTempranoSalida(emp.getTotalMinutosTempranoSalida());
-                        logger.debug("Empleado {} tiene acumulado {} minutos temprano", emp.getIdentificacionEmpleado(), emp.getTotalMinutosTempranoSalida());
-                    }
-                    return ranking;
-                })
-                .sorted(esTardanza ? EmpleadoRanking.comparadorTardeEntrada() : EmpleadoRanking.comparadorTempranoSalida())
-                .collect(Collectors.toList());
     }
 
-    // Calcula y muestra promedios mensuales
-    private void calcularPromediosMensuales(Map<YearMonth, PromedioMensual> promediosMensuales) {
-        promediosMensuales.forEach((mes, promedio) -> {
-            double promedioTardanza = promedio.calcularPromedioTardanzaEntrada();
-            double promedioSalidaTemprana = promedio.calcularPromedioSalidaTemprana();
-            logger.info("Mes: {}, Promedio Tardanza (min): {}, Promedio Salida Temprana (min): {}", mes, promedioTardanza, promedioSalidaTemprana);
-        });
+    @GetMapping("/reporteEmpleadoFecha")
+    public ResponseEntity<ReporteEmpleado_DTO> obtenerReporteEmpleadoFecha(
+            @RequestParam Long empleadoId,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate fecha) {
+        try {
+            // Llama al servicio para obtener el reporte del empleado en la fecha específica
+            ReporteEmpleado_DTO reporteEmpleado = asistenciaServices.obtenerReporteEmpleadoFecha(empleadoId, fecha);
+
+            // Retorna el reporte como respuesta con código 200 (OK)
+            return ResponseEntity.ok(reporteEmpleado);
+        } catch (Exception e) {
+            // Maneja el error y retorna un mensaje de error detallado
+            logger.error("Error al obtener el reporte del empleado en fecha específica", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);  // O puedes retornar un objeto de error con un mensaje más descriptivo
+        }
     }
+
+    @GetMapping("/reporteComparativo/grafica")
+    public ResponseEntity<Map<String, Object>> obtenerDatosGrafica(
+            @RequestParam Integer mes,
+            @RequestParam Integer anio) {
+        try {
+            Map<String, Object> datosGrafica = asistenciaServices.obtenerComparativaAsistencia(mes, anio);
+            return ResponseEntity.ok(datosGrafica);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+
+
+
+
 
     @DeleteMapping("/eliminar/todos")
     public ResponseEntity<Response<Void>> deleteAllAsistencias() {
@@ -375,8 +300,6 @@ public class Asistencia_Controller {
             // Definir referencias de tiempo para la entrada y salida
             LocalTime horaReferenciaEntrada1 = LocalTime.of(8, 0); // Ejemplo de referencia para la entrada
             LocalTime horaReferenciaEntrada2 = LocalTime.of(9, 0); // Ejemplo de segunda referencia para la entrada
-            LocalTime horaReferenciaSalida1 = LocalTime.of(17, 0); // Ejemplo de referencia para la salida
-            LocalTime horaReferenciaSalida2 = LocalTime.of(18, 0); // Ejemplo de segunda referencia para la salida
 
             // Calcular la diferencia de tiempo para la entrada y salida de cada asistencia
             for (Asistencia_Model asistencia : asistencias) {
@@ -385,14 +308,11 @@ public class Asistencia_Controller {
                     String diferenciaEntrada = asistencia.calcularDiferenciaTiempoEntrada(horaReferenciaEntrada1, horaReferenciaEntrada2);
                     asistencia.setDiferenciaTiempoEntrada(diferenciaEntrada);
 
-                    // Calcular y establecer la diferencia de tiempo para la salida
-                    String diferenciaSalida = asistencia.calcularDiferenciaTiempoSalida(horaReferenciaSalida1, horaReferenciaSalida2);
-                    asistencia.setDiferenciaTiempoSalida(diferenciaSalida);
+
 
                 } catch (Exception ex) {
                     logger.error("Error al calcular la diferencia de tiempo para la asistencia ID: " + asistencia.getId(), ex);
                     asistencia.setDiferenciaTiempoEntrada("Error");
-                    asistencia.setDiferenciaTiempoSalida("Error");
                 }
             }
 

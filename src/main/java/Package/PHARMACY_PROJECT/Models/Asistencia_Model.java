@@ -34,14 +34,9 @@ public class Asistencia_Model {
     @Column(name = "hora_entrada")
     private LocalTime horaEntrada; // Hora de entrada
 
-    @Column(name = "hora_salida")
-    private LocalTime horaSalida; // Hora de salida (si corresponde)
 
     @Transient
     private LocalTime horaEntrada2;
-
-    @Transient
-    private LocalTime horaSalida2;
 
     @Column(name = "estado", nullable = false, length = 20)
     private String estado; // Estado de la asistencia (temprano, puntual, tarde)
@@ -49,48 +44,22 @@ public class Asistencia_Model {
     @Column(name = "tipoRegistro", nullable = false, length = 20)
     private String tipoRegistro; // Estado de la asistencia (temprano, puntual, tarde)
 
-    @Transient
+    @Column(name = "diferencia_tiempo_entrada", nullable = true)
     private String diferenciaTiempoEntrada; // Diferencia de tiempo, no persistente en la base de datos
-
-    @Transient
-    private String diferenciaTiempoSalida;
-
-
-    @Transient
-    private String diferenciaTiempoEntrada2; // Diferencia de tiempo, no persistente en la base de datos
-
-    @Transient
-    private String diferenciaTiempoSalida2;
 
 
     // Constructor vacío
     public Asistencia_Model() {}
 
     // Constructor para registrar entrada
-    public Asistencia_Model(Empleado_Model empleado, LocalDate fecha, LocalTime horaEntrada,LocalTime horaSalida, String estado,String tipoRegistro) {
+    public Asistencia_Model(Empleado_Model empleado, LocalDate fecha, LocalTime horaEntrada, String estado,String tipoRegistro) {
         this.empleado = empleado;
         this.fecha = fecha;
         this.horaEntrada = horaEntrada;
         this.estado = estado;
-        this.horaSalida = horaSalida; // Salida inicial es null
         this.tipoRegistro =tipoRegistro;
     }
 
-    // Método en el modelo para actualizar el estado de salida
-    public void actualizarEstadoSalida(LocalTime horaSalida) {
-        this.horaSalida = horaSalida;
-
-        // Calcular diferencia en minutos para salida con la hora de referencia de salida
-        long diferenciaMinutos = ChronoUnit.MINUTES.between(HORA_REFERENCIA_SALIDA, horaSalida);
-
-        if (diferenciaMinutos < RANGO_TEMPRANO) {
-            this.estado = "temprano";
-        } else if (diferenciaMinutos > RANGO_TARDE) {
-            this.estado = "tarde";
-        } else {
-            this.estado = "puntual";
-        }
-}
 
     public String calcularDiferenciaTiempoEntrada(LocalTime horaReferenciaEntrada1, LocalTime horaReferenciaEntrada2) {
         // Verifica si horaEntrada o horaEntrada2 están registradas y calcula en cada caso.
@@ -102,15 +71,6 @@ public class Asistencia_Model {
         return "No disponible";
     }
 
-    public String calcularDiferenciaTiempoSalida(LocalTime horaReferenciaSalida1, LocalTime horaReferenciaSalida2) {
-        // Verifica si horaSalida o horaSalida2 están registradas y calcula en cada caso.
-        if (horaSalida != null) {
-            return calcularDiferencia(horaReferenciaSalida1, horaSalida);
-        } else if (horaSalida2 != null) {
-            return calcularDiferencia(horaReferenciaSalida2, horaSalida2);
-        }
-        return "No disponible";
-    }
 
     // Método privado para calcular la diferencia de tiempo
     private String calcularDiferencia(LocalTime referencia, LocalTime actual) {

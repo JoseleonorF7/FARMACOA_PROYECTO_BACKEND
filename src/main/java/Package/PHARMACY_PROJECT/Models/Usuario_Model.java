@@ -18,7 +18,7 @@ public class Usuario_Model {
     private String password;
     private String nombreCompleto;
     private String correoElectronico;
-    private String rol;
+    private String rol; //ADMIN o usuario
     private String token;
 
     // Constructor vacío

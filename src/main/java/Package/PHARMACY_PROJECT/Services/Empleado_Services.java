@@ -1,5 +1,6 @@
 package Package.PHARMACY_PROJECT.Services;
 import Package.PHARMACY_PROJECT.Models.Empleado_Model;
+import Package.PHARMACY_PROJECT.Models.Horario_Model;
 import Package.PHARMACY_PROJECT.Repository.Empleado_Repository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,11 @@ public class Empleado_Services {
     // Método para guardar o actualizar un empleado
     public Empleado_Model save(Empleado_Model empleado) {
         return empleadoRepository.save(empleado);
+    }
+
+    // Método para obtener un horario por su id
+    public Optional<Empleado_Model> getEmpleadoById(Long id) {
+        return empleadoRepository.findById(id);
     }
 
     // Método para buscar un empleado por huella dactilar
