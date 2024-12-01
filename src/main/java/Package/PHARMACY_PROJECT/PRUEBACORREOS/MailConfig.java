@@ -27,4 +27,6 @@ public class MailConfig {
 
         return mailSender;
     }
+
+    //appasistenciabiometrica
 }

@@ -221,6 +221,7 @@ public class Usuario_Controller {
 
                 // Enviar el correo electrónico con el código de recuperación
                 SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom("appasistenciabiometrica@gmail.com"); // Establece explícitamente el remitente
                 message.setTo(correoElectronico);
                 message.setSubject("Recuperación de Contraseña");
                 message.setText("Su código de recuperación es: " + recoveryCode + "\nPor favor ingréselo en la página de recuperación de contraseña.");
