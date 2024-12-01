@@ -340,7 +340,10 @@ public class InformeAsistencia_Controller {
             // Configurar encabezados para el archivo PDF
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("inline", "reporte_comparativo_asistencia_" + mes + "_" + anio + ".pdf");
+            headers.setContentDisposition(ContentDisposition.builder("inline")
+                    .filename("reporte_comparativo_asistencia_" + mes + "_" + anio+ ".pdf")
+                    .build());
+
 
             // Retornar el PDF en caso de éxito
             return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
