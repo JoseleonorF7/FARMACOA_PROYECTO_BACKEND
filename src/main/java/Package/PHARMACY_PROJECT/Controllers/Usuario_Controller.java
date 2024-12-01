@@ -222,17 +222,12 @@ public class Usuario_Controller {
                 usersServices.save(user);
 
                 // Enviar el correo electrónico con el código de recuperación
+
                 // Enviar el correo electrónico con el código de recuperación
-                MimeMessage message = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(message, false);
-
-                helper.setTo(correoElectronico);
-                helper.setSubject("Recuperación de Contraseña");
-                helper.setText("Su código de recuperación es: " + recoveryCode);
-
-                mailSender.send(message);
-
-
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setTo(correoElectronico);
+                message.setSubject("Recuperación de Contraseña");
+                message.setText("Su código de recuperación es: " + recoveryCode + "\nPor favor ingréselo en la página de recuperación de contraseña.");
 
                 try {
                     mailSender.send(message);

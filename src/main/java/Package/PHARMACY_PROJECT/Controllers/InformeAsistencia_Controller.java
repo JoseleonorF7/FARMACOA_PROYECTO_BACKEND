@@ -150,12 +150,10 @@ public class InformeAsistencia_Controller {
                     fechaEnvio.format(DateTimeFormatter.ofPattern("MMMM yyyy")) + ".";
 
             // Enviar el correo con el PDF adjunto
-            emailService.sendEmailWithAttachment(
+            emailService.sendSimpleMessage(
                     "farmacenterlasuperdrogueria@gmail.com",
                     subject,
-                    body,
-                    pdfBytes,
-                    "reporte_asistencia_" + mes + "_" + ano + ".pdf"
+                    body
             );
 
             correoEnviado = true; // Marcar como enviado
