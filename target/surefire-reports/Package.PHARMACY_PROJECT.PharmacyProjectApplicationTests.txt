@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: Package.PHARMACY_PROJECT.PharmacyProjectApplicationTests
 -------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 21.55 s -- in Package.PHARMACY_PROJECT.PharmacyProjectApplicationTests
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 21.50 s -- in Package.PHARMACY_PROJECT.PharmacyProjectApplicationTests
