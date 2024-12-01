@@ -238,7 +238,6 @@ public class Asistencia_Services {
             asistenciasPorEstado.put("tardes", asistenciasTardes);
             reporte.setAsistenciasPorEstado(asistenciasPorEstado);
             reporte.setEstadisticasPorEmpleado(estadisticasPorEmpleado);
-            reporte.setEmpleadoConMayorTardanza(empleadoConMayorTardanza);
 
         } catch (Exception e) {
             throw new RuntimeException("Error al generar el reporte mensual: " + e.getMessage(), e);
