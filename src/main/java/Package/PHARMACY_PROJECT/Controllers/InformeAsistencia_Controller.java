@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
+@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/informe-asistencia")
 public class InformeAsistencia_Controller {
@@ -50,7 +50,6 @@ public class InformeAsistencia_Controller {
     public InformeAsistencia_Controller(EmailService emailService) {
         this.emailService = emailService;
     }
-    @CrossOrigin(origins = "http://localhost:4200")
     @PostMapping("/programarEnvioCorreo")
     public ResponseEntity<Map<String, Object>> programarEnvioCorreo(@RequestBody Map<String, String> request) {
         String frecuencia = request.get("frecuencia");

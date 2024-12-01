@@ -3,6 +3,7 @@ package Package.PHARMACY_PROJECT.Controllers;
 import Package.PHARMACY_PROJECT.Models.Usuario_Model;
 import Package.PHARMACY_PROJECT.Response;
 import Package.PHARMACY_PROJECT.Services.Usuario_Services;
+import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -220,11 +222,17 @@ public class Usuario_Controller {
                 usersServices.save(user);
 
                 // Enviar el correo electrónico con el código de recuperación
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom("appasistenciabiometrica@gmail.com"); // Establece explícitamente el remitente
-                message.setTo(correoElectronico);
-                message.setSubject("Recuperación de Contraseña");
-                message.setText("Su código de recuperación es: " + recoveryCode + "\nPor favor ingréselo en la página de recuperación de contraseña.");
+                // Enviar el correo electrónico con el código de recuperación
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, false);
+
+                helper.setTo(correoElectronico);
+                helper.setSubject("Recuperación de Contraseña");
+                helper.setText("Su código de recuperación es: " + recoveryCode);
+
+                mailSender.send(message);
+
+
 
                 try {
                     mailSender.send(message);
