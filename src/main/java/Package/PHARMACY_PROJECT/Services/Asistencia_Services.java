@@ -146,6 +146,22 @@ public class Asistencia_Services {
 
 //-------------------------------------------------------------------------------
 
+    private String calcularTiempo(String diferenciaTiempo) {
+        int horas = 0, minutos = 0, segundos = 0;
+
+        // Patrón para extraer horas, minutos y segundos
+        Pattern pattern = Pattern.compile("(\\d+) hora\\(s\\)(?:, (\\d+) minuto\\(s\\))?(?: y (\\d+) segundo\\(s\\))?");
+        Matcher matcher = pattern.matcher(diferenciaTiempo);
+
+        if (matcher.find()) {
+            if (matcher.group(1) != null) horas = Integer.parseInt(matcher.group(1));
+            if (matcher.group(2) != null) minutos = Integer.parseInt(matcher.group(2));
+            if (matcher.group(3) != null) segundos = Integer.parseInt(matcher.group(3));
+        }
+
+        return String.format("%d hora(s), %d minuto(s), %d segundo(s)", horas, minutos, segundos);
+    }
+
     public ReporteMensual_DTO obtenerReporteGeneralMensual(int mes, int anio) {
         ReporteMensual_DTO reporte = new ReporteMensual_DTO();
 
@@ -153,7 +169,7 @@ public class Asistencia_Services {
         if (mes < 1 || mes > 12) {
             throw new IllegalArgumentException("El mes debe estar entre 1 y 12.");
         }
-        if (anio < 2000 || anio > LocalDate.now().getYear()) { // Ajusta el rango de años si es necesario
+        if (anio < 2000 || anio > LocalDate.now().getYear()) {
             throw new IllegalArgumentException("El año debe ser válido y no mayor al actual.");
         }
 
@@ -185,44 +201,49 @@ public class Asistencia_Services {
                 Empleado_Model empleado = entrada.getKey();
                 List<Asistencia_Model> asistenciasEmpleado = entrada.getValue();
 
-                int totalMinutosTarde = 0, totalSegundosTarde = 0, llegadasTarde = 0, llegadasPuntuales = 0;
+                int totalHorasTarde = 0, totalMinutosTarde = 0, totalSegundosTarde = 0, llegadasTarde = 0, llegadasPuntuales = 0;
 
                 for (Asistencia_Model asistencia : asistenciasEmpleado) {
                     String diferenciaTiempo = asistencia.getDiferenciaTiempoEntrada();
-                    if (diferenciaTiempo != null) {
-                        if (diferenciaTiempo.contains("Tarde")) {
-                            llegadasTarde++;
-                            asistenciasTardes++;
-                            String tiempo = calcularTiempo(diferenciaTiempo);
+                    if (diferenciaTiempo != null && diferenciaTiempo.contains("Tarde")) {
+                        llegadasTarde++;
+                        asistenciasTardes++;
 
-                            // Validar el formato del tiempo
-                            Pattern pattern = Pattern.compile("(\\d+) minutos y (\\d+) segundos");
-                            Matcher matcher = pattern.matcher(tiempo);
-                            if (matcher.find()) {
-                                totalMinutosTarde += Integer.parseInt(matcher.group(1));
-                                totalSegundosTarde += Integer.parseInt(matcher.group(2));
+                        // Calcular los tiempos de tardanza
+                        String tiempo = calcularTiempo(diferenciaTiempo);
+                        String[] tiempos = tiempo.split(", ");
+                        for (String t : tiempos) {
+                            if (t.contains("hora")) {
+                                totalHorasTarde += Integer.parseInt(t.split(" ")[0]);
+                            } else if (t.contains("minuto")) {
+                                totalMinutosTarde += Integer.parseInt(t.split(" ")[0]);
+                            } else if (t.contains("segundo")) {
+                                totalSegundosTarde += Integer.parseInt(t.split(" ")[0]);
                             }
-                        } else {
-                            llegadasPuntuales++;
-                            asistenciasPuntuales++;
                         }
+                    } else {
+                        llegadasPuntuales++;
+                        asistenciasPuntuales++;
                     }
                 }
 
-                // Ajustar segundos
+                // Ajustar minutos y horas por los segundos sobrantes
                 totalMinutosTarde += totalSegundosTarde / 60;
-                totalSegundosTarde = totalSegundosTarde % 60;
+                totalSegundosTarde %= 60;
+                totalHorasTarde += totalMinutosTarde / 60;
+                totalMinutosTarde %= 60;
 
                 EstadisticasEmpleado_DTO estadisticasEmpleado = new EstadisticasEmpleado_DTO();
                 estadisticasEmpleado.setEmpleadoNombre(empleado.getNombre());
-                estadisticasEmpleado.setTotalTarde(String.format("%d minutos y %d segundos", totalMinutosTarde, totalSegundosTarde));
+                estadisticasEmpleado.setTotalTarde(String.format("%d hora(s), %d minuto(s), %d segundo(s)",
+                        totalHorasTarde, totalMinutosTarde, totalSegundosTarde));
                 estadisticasEmpleado.setLlegadasTarde(llegadasTarde);
                 estadisticasEmpleado.setLlegadasPuntuales(llegadasPuntuales);
                 estadisticasEmpleado.setTotalPuntual(String.format("%d asistencias puntuales", llegadasPuntuales));
 
                 estadisticasPorEmpleado.add(estadisticasEmpleado);
 
-                int tardanzaTotal = totalMinutosTarde * 60 + totalSegundosTarde;
+                int tardanzaTotal = totalHorasTarde * 3600 + totalMinutosTarde * 60 + totalSegundosTarde;
                 if (tardanzaTotal > maxTardanza) {
                     maxTardanza = tardanzaTotal;
                     empleadoConMayorTardanza = estadisticasEmpleado;
@@ -247,34 +268,6 @@ public class Asistencia_Services {
         return reporte;
     }
 
-
-    private String calcularTiempo(String diferenciaTiempo) {
-        int horas = 0, minutos = 0, segundos = 0;
-
-        // Patrón para extraer horas, minutos y segundos
-        Pattern pattern = Pattern.compile("(\\d+) hora\\(s\\) y (\\d+) minuto\\(s\\) y (\\d+) segundo\\(s\\)");
-        Matcher matcher = pattern.matcher(diferenciaTiempo);
-
-        if (matcher.find()) {
-            horas = Integer.parseInt(matcher.group(1));
-            minutos = Integer.parseInt(matcher.group(2));
-            segundos = Integer.parseInt(matcher.group(3));
-        } else {
-            // Si solo hay horas y minutos (sin segundos)
-            pattern = Pattern.compile("(\\d+) hora\\(s\\) y (\\d+) minuto\\(s\\)");
-            matcher = pattern.matcher(diferenciaTiempo);
-            if (matcher.find()) {
-                horas = Integer.parseInt(matcher.group(1));
-                minutos = Integer.parseInt(matcher.group(2));
-            }
-        }
-
-        // Convertir horas a minutos y sumar minutos y segundos
-        minutos += horas * 60;
-
-        // Devolver el tiempo en formato "X minutos y Y segundos"
-        return String.format("%d minutos y %d segundos", minutos, segundos);
-    }
 
     // Método para reporte mensual de un empleado
     public ReporteEmpleado_DTO obtenerReporteEmpleadoMensual(Long empleadoId, int mes, int anio) {
@@ -303,7 +296,8 @@ public class Asistencia_Services {
             }
 
             // Lógica de cálculo
-            int totalMinutosTarde = 0, totalSegundosTarde = 0, llegadasTarde = 0, llegadasPuntuales = 0;
+            int totalHorasTarde = 0, totalMinutosTarde = 0, totalSegundosTarde = 0;
+            int llegadasTarde = 0, llegadasPuntuales = 0;
             List<Asistencia_Model> detallesAsistencias = new ArrayList<>();
 
             for (Asistencia_Model asistencia : asistenciasEmpleado) {
@@ -312,20 +306,29 @@ public class Asistencia_Services {
                 String diferenciaTiempo = asistencia.getDiferenciaTiempoEntrada();
                 if (diferenciaTiempo != null && diferenciaTiempo.contains("Tarde")) {
                     llegadasTarde++;
+
+                    // Calcular tiempo a partir de diferenciaTiempo
                     String tiempo = calcularTiempo(diferenciaTiempo);
-                    Pattern pattern = Pattern.compile("(\\d+) minutos y (\\d+) segundos");
-                    Matcher matcher = pattern.matcher(tiempo);
-                    if (matcher.find()) {
-                        totalMinutosTarde += Integer.parseInt(matcher.group(1));
-                        totalSegundosTarde += Integer.parseInt(matcher.group(2));
+                    String[] tiempos = tiempo.split(", ");
+                    for (String t : tiempos) {
+                        if (t.contains("hora")) {
+                            totalHorasTarde += Integer.parseInt(t.split(" ")[0]);
+                        } else if (t.contains("minuto")) {
+                            totalMinutosTarde += Integer.parseInt(t.split(" ")[0]);
+                        } else if (t.contains("segundo")) {
+                            totalSegundosTarde += Integer.parseInt(t.split(" ")[0]);
+                        }
                     }
                 } else {
                     llegadasPuntuales++;
                 }
             }
 
+            // Ajustar tiempos sobrantes
             totalMinutosTarde += totalSegundosTarde / 60;
-            totalSegundosTarde = totalSegundosTarde % 60;
+            totalSegundosTarde %= 60;
+            totalHorasTarde += totalMinutosTarde / 60;
+            totalMinutosTarde %= 60;
 
             // Crear el reporte
             ReporteEmpleado_DTO reporteEmpleado = new ReporteEmpleado_DTO();
@@ -334,7 +337,8 @@ public class Asistencia_Services {
             reporteEmpleado.setMes(mes);
             reporteEmpleado.setAño(anio);
             reporteEmpleado.setTotalAsistencias(llegadasTarde + llegadasPuntuales);
-            reporteEmpleado.setTotalTarde(String.format("%d minutos y %d segundos", totalMinutosTarde, totalSegundosTarde));
+            reporteEmpleado.setTotalTarde(String.format("%d hora(s), %d minuto(s), %d segundo(s)",
+                    totalHorasTarde, totalMinutosTarde, totalSegundosTarde));
             reporteEmpleado.setLlegadasTarde(llegadasTarde);
             reporteEmpleado.setLlegadasPuntuales(llegadasPuntuales);
             reporteEmpleado.setAsistencias(detallesAsistencias);

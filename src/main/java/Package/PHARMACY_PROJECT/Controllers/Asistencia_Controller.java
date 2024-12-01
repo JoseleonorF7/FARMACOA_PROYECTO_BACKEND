@@ -22,6 +22,7 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -214,21 +215,32 @@ public class Asistencia_Controller {
     }
 
     @GetMapping("/reporteEmpleadoMensual")
-    public ResponseEntity<ReporteEmpleado_DTO> obtenerReporteEmpleadoMensual(
+    public ResponseEntity<Response<ReporteEmpleado_DTO>> obtenerReporteEmpleadoMensual(
             @RequestParam Long empleadoId,
             @RequestParam Integer mes,
             @RequestParam Integer anio) {
         try {
             // Llama al servicio para obtener el reporte del empleado específico
-            ReporteEmpleado_DTO reporteEmpleado = asistenciaServices.obtenerReporteEmpleadoMensual(empleadoId,mes,anio);
+            ReporteEmpleado_DTO reporteEmpleado = asistenciaServices.obtenerReporteEmpleadoMensual(empleadoId, mes, anio);
 
-            // Retorna el reporte como respuesta con código 200 (OK)
-            return ResponseEntity.ok(reporteEmpleado);
+            // Retorna el reporte como respuesta con código 200 (OK) usando la clase Response
+            Response<ReporteEmpleado_DTO> response = Response.success(reporteEmpleado);
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            // Manejo de errores de validación
+            Response<ReporteEmpleado_DTO> response = Response.error("Parámetros inválidos: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
+        } catch (NoSuchElementException e) {
+            // Manejo de error cuando no se encuentra un reporte
+            Response<ReporteEmpleado_DTO> response = Response.notFound("No se encontró el reporte solicitado.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+
         } catch (Exception e) {
-            // Maneja el error y retorna un mensaje de error detallado
-            logger.error("Error al obtener el reporte del empleado", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(null);  // O puedes retornar un objeto de error con un mensaje más descriptivo
+            // Manejo de errores generales
+            Response<ReporteEmpleado_DTO> response = Response.internalServerError("Error interno: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 

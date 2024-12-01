@@ -74,20 +74,27 @@ public class Asistencia_Model {
 
     // Método privado para calcular la diferencia de tiempo
     private String calcularDiferencia(LocalTime referencia, LocalTime actual) {
-        long diferencia = ChronoUnit.MINUTES.between(referencia, actual);
+        // Obtener la diferencia total en segundos
+        long diferenciaSegundos = Math.abs(ChronoUnit.SECONDS.between(referencia, actual));
 
-        if (diferencia < RANGO_TEMPRANO) { // Temprano
-            long horasTemprano = Math.abs(diferencia) / 60;
-            long minutosTemprano = Math.abs(diferencia) % 60;
-            return horasTemprano > 0 ? "Temprano por " + horasTemprano + " hora(s) y " + minutosTemprano + " minuto(s)" : "Temprano por " + minutosTemprano + " minuto(s)";
-        } else if (diferencia > RANGO_TARDE) { // Tarde
-            long horasTarde = diferencia / 60;
-            long minutosTarde = diferencia % 60;
-            return horasTarde > 0 ? "Tarde por " + horasTarde + " hora(s) y " + minutosTarde + " minuto(s)" : "Tarde por " + minutosTarde + " minuto(s)";
+        // Convertir la diferencia en horas, minutos y segundos
+        long horas = diferenciaSegundos / 3600; // 3600 segundos por hora
+        long minutos = (diferenciaSegundos % 3600) / 60; // El resto dividido entre 60 para obtener minutos
+        long segundos = diferenciaSegundos % 60; // El resto son los segundos restantes
+
+        if (diferenciaSegundos < RANGO_TEMPRANO) { // Temprano
+            return horas > 0 ? "Temprano por " + horas + " hora(s), " + minutos + " minuto(s) y " + segundos + " segundo(s)"
+                    : minutos > 0 ? "Temprano por " + minutos + " minuto(s) y " + segundos + " segundo(s)"
+                    : "Temprano por " + segundos + " segundo(s)";
+        } else if (diferenciaSegundos > RANGO_TARDE) { // Tarde
+            return horas > 0 ? "Tarde por " + horas + " hora(s), " + minutos + " minuto(s) y " + segundos + " segundo(s)"
+                    : minutos > 0 ? "Tarde por " + minutos + " minuto(s) y " + segundos + " segundo(s)"
+                    : "Tarde por " + segundos + " segundo(s)";
         } else { // Puntual
             return "Puntual";
         }
     }
+
 
 }
 
