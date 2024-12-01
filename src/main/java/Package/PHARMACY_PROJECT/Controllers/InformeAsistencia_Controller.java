@@ -18,15 +18,14 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+
 @CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/informe-asistencia")
@@ -310,7 +309,7 @@ public class InformeAsistencia_Controller {
             @RequestParam Integer mes,
             @RequestParam Integer anio) {
         try {
-            // Validaciones iniciales (validar mes y año)
+            // Validaciones iniciales
             if (mes < 1 || mes > 12) {
                 return ResponseEntity.badRequest().body(Response.error("El mes debe estar entre 1 y 12."));
             }
@@ -320,38 +319,43 @@ public class InformeAsistencia_Controller {
 
             // Obtener los datos comparativos desde el servicio
             Map<String, Object> datosComparativa = asistenciaServices.obtenerComparativaAsistencia(mes, anio);
-
-            // Verificar si hay datos disponibles para el reporte
             if (datosComparativa == null || datosComparativa.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Response.notFound("No hay datos para generar el reporte comparativo."));
             }
 
-            // Extraer los datos necesarios para el reporte
+            // Extraer datos
             int cantidadTardanzas = (Integer) datosComparativa.getOrDefault("cantidadTardanzas", 0);
             int cantidadPuntualidades = (Integer) datosComparativa.getOrDefault("cantidadPuntualidades", 0);
             List<ComparativaAsistencia_DTO> empleados =
                     (List<ComparativaAsistencia_DTO>) datosComparativa.getOrDefault("empleados", List.of());
 
-            // Generar el PDF usando el servicio de PDF
+            // Generar el PDF
             byte[] pdfBytes = informeAsistenciaPDFServices.generarReporteComparativoPdf(
                     cantidadTardanzas, cantidadPuntualidades, empleados, mes, anio);
 
-            // Configurar encabezados para el archivo PDF
+            // Configurar encabezados
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
             headers.setContentDisposition(ContentDisposition.builder("inline")
-                    .filename("reporte_comparativo_asistencia_" + mes + "_" + anio+ ".pdf")
+                    .filename("reporte_comparativo_asistencia_" + mes + "_" + anio + ".pdf")
                     .build());
 
-
-            // Retornar el PDF en caso de éxito
             return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
 
-        } catch (Exception e) {
-            // Manejo de errores inesperados
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Response.error("Datos inválidos: " + e.getMessage()));
+        } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Response.internalServerError("Ocurrió un error al generar el reporte: " + e.getMessage()));
+                    .body(Response.internalServerError("Error al generar el PDF: " + e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "error", "Error al generar la gráfica",
+                            "details", e.getMessage(),
+                            "stacktrace", Arrays.toString(e.getStackTrace())
+                    ));
+
         }
     }
 
