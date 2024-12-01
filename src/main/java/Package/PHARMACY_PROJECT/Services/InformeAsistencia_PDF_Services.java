@@ -258,13 +258,6 @@ public class InformeAsistencia_PDF_Services {
         document.add(table1);
         document.add(new Paragraph("\n"));
 
-        // Empleado con mayor tardanza
-        document.add(new Paragraph("Empleado con Mayor Tardanza: " + reporteMensual.getEmpleadoConMayorTardanza().getEmpleadoNombre())
-                .setFontSize(14).setBold());
-        document.add(new Paragraph("Total Tarde: " + reporteMensual.getEmpleadoConMayorTardanza().getTotalTarde()));
-        document.add(new Paragraph("Llegadas Tarde: " + reporteMensual.getEmpleadoConMayorTardanza().getLlegadasTarde()));
-        document.add(new Paragraph("\n"));
-
         document.add(new Paragraph("\n"));
 
 
