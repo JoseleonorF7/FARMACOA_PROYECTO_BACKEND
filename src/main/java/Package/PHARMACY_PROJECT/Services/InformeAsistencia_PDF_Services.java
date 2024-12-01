@@ -270,94 +270,37 @@ public class InformeAsistencia_PDF_Services {
     }
 
     public byte[] generateReporteEmpleadoPdf(ReporteEmpleado_DTO reporteEmpleado) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-        // Crear un escritor y documento PDF
-        PdfWriter writer = new PdfWriter(baos);
-        PdfDocument pdf = new PdfDocument(writer);
-        Document document = new Document(pdf);
-
-        document.setMargins(40, 40, 40, 40);  // Margen superior, izquierdo, inferior, derecho
-
-        // Título del reporte con mes y año
-        String mesNombre = obtenerNombreMes(reporteEmpleado.getMes());
-        String fechaReporte = mesNombre + " " + reporteEmpleado.getAño();
-        // Título del documento
-        document.add(new Paragraph("Reporte de Asistencia Mensual - " + reporteEmpleado.getEmpleadoNombre()+"- "+ fechaReporte)
-                .setFontSize(18)
-                .setBold()
-                .setTextAlignment(TextAlignment.CENTER));
-        document.add(new Paragraph("\n"));
-        document.add(new Paragraph("\n"));
-
-        // Resumen General de Asistencias
-        document.add(new Paragraph("Resumen General de Asistencia").setFontSize(14).setBold());
-        document.add(new Paragraph("Mes: " + reporteEmpleado.getMes() + " - Año: " + reporteEmpleado.getAño()));
-        document.add(new Paragraph("Total de Asistencias: " + reporteEmpleado.getTotalAsistencias()));
-        document.add(new Paragraph("Total de Tarde: " + (reporteEmpleado.getTotalTarde() != null ? reporteEmpleado.getTotalTarde() : "0 minutos y 0 segundos")));
-        document.add(new Paragraph("Llegadas Tarde: " + reporteEmpleado.getLlegadasTarde()));
-        document.add(new Paragraph("Llegadas Puntuales: " + reporteEmpleado.getLlegadasPuntuales()));
-        document.add(new Paragraph("\n"));
-
-        // Tabla con los Detalles de las Asistencias
-        document.add(new Paragraph("Detalles de Asistencias").setFontSize(14).setBold());
-        Table table = new Table(5);  // Cinco columnas: Fecha, Hora Entrada, Tipo Registro, Diferencia Tiempo, Estado
-        table.addCell("Fecha");
-        table.addCell("Hora Entrada");
-        table.addCell("Tipo Registro");
-        table.addCell("Diferencia de Tiempo");
-        table.addCell("Estado");
-
-        // Añadir los detalles de cada asistencia
-        for (Asistencia_Model asistencia : reporteEmpleado.getAsistencias()) {
-            // Verificar si la fecha y hora están disponibles y formatear correctamente
-            String fecha = asistencia.getFecha() != null ? asistencia.getFecha().toString() : "N/A";
-            String horaEntrada = asistencia.getHoraEntrada() != null ? String.valueOf(asistencia.getHoraEntrada()) : "N/A";
-            String tipoRegistro = asistencia.getTipoRegistro() != null ? asistencia.getTipoRegistro() : "N/A";
-            String diferenciaTiempo = asistencia.getDiferenciaTiempoEntrada() != null ? asistencia.getDiferenciaTiempoEntrada() : "N/A";
-            String estado = diferenciaTiempo.contains("Tarde") ? "Tarde" : "Puntual";
-
-            // Agregar las celdas a la tabla
-            table.addCell(fecha);
-            table.addCell(horaEntrada);
-            table.addCell(tipoRegistro);
-            table.addCell(diferenciaTiempo);
-            table.addCell(estado);
-        }
-
-        document.add(table);
-        document.add(new Paragraph("\n"));
-
-        // Cerrar documento PDF
-        document.close();
-
-        // Retornar los bytes del PDF generado
-        return baos.toByteArray();
-    }
-
-    public byte[] generateReporteEmpleadoFechaPdf(ReporteEmpleado_DTO reporteEmpleado) throws IOException {
         Logger logger = LoggerFactory.getLogger(getClass());
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         try {
-            logger.info("Creando documento PDF...");
+            logger.info("Generando reporte mensual de asistencia para el empleado: {}", reporteEmpleado.getEmpleadoNombre());
+
             PdfWriter writer = new PdfWriter(baos);
             PdfDocument pdf = new PdfDocument(writer);
             Document document = new Document(pdf);
 
-            // Agregar contenido al PDF
-            document.add(new Paragraph("Hola Mundo"));
+            document.setMargins(40, 40, 40, 40);
 
-            String fechaReporte = convertirFechaANombreDeMes(reporteEmpleado.getFecha());
-            document.add(new Paragraph("Reporte de Asistencia - " + reporteEmpleado.getEmpleadoNombre() + "- " + fechaReporte)
+            String mesNombre = obtenerNombreMes(reporteEmpleado.getMes());
+            String fechaReporte = mesNombre + " " + reporteEmpleado.getAño();
+
+            document.add(new Paragraph("Reporte de Asistencia Mensual - " + reporteEmpleado.getEmpleadoNombre() + " - " + fechaReporte)
                     .setFontSize(18)
                     .setBold()
                     .setTextAlignment(TextAlignment.CENTER));
-            document.add(new Paragraph("\nResumen de Asistencia").setFontSize(14).setBold());
-            document.add(new Paragraph("Fecha: " + reporteEmpleado.getFecha()));
+            document.add(new Paragraph("\n\n"));
 
-            // Tabla
-            Table table = new Table(5); // Cinco columnas
+            document.add(new Paragraph("Resumen General de Asistencia").setFontSize(14).setBold());
+            document.add(new Paragraph("Mes: " + reporteEmpleado.getMes() + " - Año: " + reporteEmpleado.getAño()));
+            document.add(new Paragraph("Total de Asistencias: " + reporteEmpleado.getTotalAsistencias()));
+            document.add(new Paragraph("Total de Tarde: " + (reporteEmpleado.getTotalTarde() != null ? reporteEmpleado.getTotalTarde() : "0 minutos y 0 segundos")));
+            document.add(new Paragraph("Llegadas Tarde: " + reporteEmpleado.getLlegadasTarde()));
+            document.add(new Paragraph("Llegadas Puntuales: " + reporteEmpleado.getLlegadasPuntuales()));
+            document.add(new Paragraph("\n"));
+
+            document.add(new Paragraph("Detalles de Asistencias").setFontSize(14).setBold());
+            Table table = new Table(5);
             table.addCell("Fecha");
             table.addCell("Hora Entrada");
             table.addCell("Tipo Registro");
@@ -366,19 +309,22 @@ public class InformeAsistencia_PDF_Services {
 
             for (Asistencia_Model asistencia : reporteEmpleado.getAsistencias()) {
                 if (asistencia == null) continue;
+
                 table.addCell(asistencia.getFecha() != null ? asistencia.getFecha().toString() : "N/A");
                 table.addCell(asistencia.getHoraEntrada() != null ? asistencia.getHoraEntrada().toString() : "N/A");
                 table.addCell(asistencia.getTipoRegistro() != null ? asistencia.getTipoRegistro() : "N/A");
                 table.addCell(asistencia.getDiferenciaTiempoEntrada() != null ? asistencia.getDiferenciaTiempoEntrada() : "N/A");
                 table.addCell(asistencia.getDiferenciaTiempoEntrada() != null && asistencia.getDiferenciaTiempoEntrada().contains("Tarde") ? "Tarde" : "Puntual");
             }
+
             document.add(table);
+            document.add(new Paragraph("\n"));
             document.close();
 
-            logger.info("PDF generado correctamente.");
+            logger.info("Reporte mensual generado correctamente.");
         } catch (Exception e) {
-            logger.error("Error al generar el PDF: ", e);
-            throw new IOException("No se pudo generar el PDF.", e);
+            logger.error("Error al generar el reporte mensual de asistencia: ", e);
+            throw new IOException("No se pudo generar el reporte mensual del PDF.", e);
         } finally {
             baos.close();
         }
@@ -386,211 +332,198 @@ public class InformeAsistencia_PDF_Services {
         return baos.toByteArray();
     }
 
-    public byte[] generarReporteComparativoPdf(int cantidadTardanzas, int cantidadPuntualidades, List<ComparativaAsistencia_DTO> datos, Integer mes, Integer anio) throws IOException {
-        // Validación de si no hay empleados
-        if (datos == null || datos.isEmpty()) {
-            // Lanza una excepción o maneja el caso de error aquí
-            throw new IllegalArgumentException("No se encontraron registros de asistencia para el mes y año proporcionados.");
-        }
+    public byte[] generateReporteEmpleadoFechaPdf(ReporteEmpleado_DTO reporteEmpleado) throws IOException {
+        Logger logger = LoggerFactory.getLogger(getClass());
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PdfWriter writer = new PdfWriter(baos);
-        PdfDocument pdf = new PdfDocument(writer);
-        Document document = new Document(pdf);
 
-        // Agregar márgenes al documento
-        document.setMargins(40, 40, 40, 40);  // Margen superior, izquierdo, inferior, derecho
+        try {
+            logger.info("Generando reporte de asistencia para el empleado: {} en la fecha: {}",
+                    reporteEmpleado.getEmpleadoNombre(), reporteEmpleado.getFecha());
 
-        // Título del reporte con mes y año
-        String mesNombre = obtenerNombreMes(mes);
-        String fechaReporte = mesNombre + " " + anio;
-        document.add(new Paragraph("Reporte Comparativo de Asistencia - " + fechaReporte)
-                .setFontSize(18)
-                .setBold()
-                .setTextAlignment(TextAlignment.CENTER)
-        ); // Usando conversión
+            PdfWriter writer = new PdfWriter(baos);
+            PdfDocument pdf = new PdfDocument(writer);
+            Document document = new Document(pdf);
 
-        document.add(new Paragraph("\n"));
+            document.setMargins(40, 40, 40, 40);
 
-        // Mostrar los totales con estilo
-        document.add(new Paragraph("Totales Generales:")
-                .setFontSize(14)
-                .setBold()
-        ); // Usando conversión
-        document.add(new Paragraph("Tardanzas totales: " + cantidadTardanzas)
-                .setFontSize(12)
-        );
-        document.add(new Paragraph("Puntualidades totales: " + cantidadPuntualidades)
-                .setFontSize(12)
-        );
+            String fechaReporte = convertirFechaANombreDeMes(reporteEmpleado.getFecha());
 
-        document.add(new Paragraph("\n"));
+            document.add(new Paragraph("Reporte de Asistencia - " + reporteEmpleado.getEmpleadoNombre() + " - " + fechaReporte)
+                    .setFontSize(18)
+                    .setBold()
+                    .setTextAlignment(TextAlignment.CENTER));
+            document.add(new Paragraph("\nResumen de Asistencia").setFontSize(14).setBold());
+            document.add(new Paragraph("Fecha: " + reporteEmpleado.getFecha()));
+            document.add(new Paragraph("\n"));
 
-        // Insertar gráfica de pastel (tardanzas vs puntualidades)
-        if (cantidadTardanzas > 0 || cantidadPuntualidades > 0) {
-            byte[] graficaBytes = generarGraficaPastel(cantidadTardanzas, cantidadPuntualidades); // Método para generar la gráfica
-            ImageData imageData = ImageDataFactory.create(graficaBytes);
-            Image image = new Image(imageData);
-            image.setWidth(400);  // Ajustar el tamaño de la imagen
-            image.setHorizontalAlignment(HorizontalAlignment.CENTER);
-            document.add(image);
+            Table table = new Table(5);
+            table.addCell("Fecha");
+            table.addCell("Hora Entrada");
+            table.addCell("Tipo Registro");
+            table.addCell("Diferencia de Tiempo");
+            table.addCell("Estado");
+
+            for (Asistencia_Model asistencia : reporteEmpleado.getAsistencias()) {
+                if (asistencia == null) continue;
+
+                table.addCell(asistencia.getFecha() != null ? asistencia.getFecha().toString() : "N/A");
+                table.addCell(asistencia.getHoraEntrada() != null ? asistencia.getHoraEntrada().toString() : "N/A");
+                table.addCell(asistencia.getTipoRegistro() != null ? asistencia.getTipoRegistro() : "N/A");
+                table.addCell(asistencia.getDiferenciaTiempoEntrada() != null ? asistencia.getDiferenciaTiempoEntrada() : "N/A");
+                table.addCell(asistencia.getDiferenciaTiempoEntrada() != null && asistencia.getDiferenciaTiempoEntrada().contains("Tarde") ? "Tarde" : "Puntual");
+            }
+
+            document.add(table);
+            document.close();
+
+            logger.info("Reporte por fecha generado correctamente.");
+        } catch (Exception e) {
+            logger.error("Error al generar el reporte por fecha: ", e);
+            throw new IOException("No se pudo generar el reporte por fecha del PDF.", e);
+        } finally {
+            baos.close();
         }
-
-        document.add(new Paragraph("\n"));
-
-        // Insertar gráfica para Tardanzas
-        byte[] graficaTardanzasBytes = generarGraficaComparativaTardanzas(datos); // Generar gráfica para tardanzas
-        if (graficaTardanzasBytes != null && graficaTardanzasBytes.length > 0) {
-            ImageData imageData = ImageDataFactory.create(graficaTardanzasBytes);
-            Image image = new Image(imageData);
-            image.setWidth(400);  // Ajustar el tamaño de la imagen
-            image.setHorizontalAlignment(HorizontalAlignment.CENTER);
-            document.add(image);
-        }
-
-        document.add(new Paragraph("\n"));
-
-        // Insertar gráfica para Puntualidades
-        byte[] graficaPuntualidadesBytes = generarGraficaComparativaPuntualidades(datos); // Generar gráfica para puntualidades
-        if (graficaPuntualidadesBytes != null && graficaPuntualidadesBytes.length > 0) {
-            ImageData imageData = ImageDataFactory.create(graficaPuntualidadesBytes);
-            Image image = new Image(imageData);
-            image.setWidth(400);  // Ajustar el tamaño de la imagen
-            image.setHorizontalAlignment(HorizontalAlignment.CENTER);
-            document.add(image);
-        }
-
-        document.add(new Paragraph("\n"));
-
-
-        // Tabla con los detalles por empleado
-        document.add(new Paragraph("Detalle por Empleado:")
-                .setFontSize(14)
-                .setBold()
-        ); // Usando conversión
-
-        // Crear una tabla con las proporciones deseadas
-        Table table = new Table(new float[]{3, 4, 2, 2}); // Columnas: ID, Nombre, Puntualidades, Tardanzas
-        table.setWidth(UnitValue.createPercentValue(100)); // Ancho de la tabla al 100% del documento
-        table.setBorder(Border.NO_BORDER);  // Eliminar el borde exterior para un look limpio
-
-        // Encabezados de la tabla
-        table.addHeaderCell(new Cell().add(new Paragraph("ID Empleado").setBold()).setTextAlignment(TextAlignment.CENTER));
-        table.addHeaderCell(new Cell().add(new Paragraph("Nombre Empleado").setBold()).setTextAlignment(TextAlignment.CENTER));
-        table.addHeaderCell(new Cell().add(new Paragraph("Puntualidades").setBold()).setTextAlignment(TextAlignment.CENTER));
-        table.addHeaderCell(new Cell().add(new Paragraph("Tardanzas").setBold()).setTextAlignment(TextAlignment.CENTER));
-
-        // Rellenar la tabla con los datos de empleados
-        for (ComparativaAsistencia_DTO empleado : datos) {
-            table.addCell(String.valueOf(empleado.getEmpleadoId()));
-            table.addCell(empleado.getEmpleadoNombre());
-            table.addCell(String.valueOf(empleado.getPuntualidades()));
-            table.addCell(String.valueOf(empleado.getTardanzas()));
-        }
-
-        document.add(table);
-
-        // Cerrar el documento
-        document.close();
 
         return baos.toByteArray();
     }
-
 
     public String convertirFechaANombreDeMes(LocalDate fecha) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy");
         return fecha.format(formatter);  // Devuelve el mes y el año
     }
 
+    public byte[] generarReporteComparativoPdf(int cantidadTardanzas, int cantidadPuntualidades,
+                                               List<ComparativaAsistencia_DTO> datos,
+                                               Integer mes, Integer anio) throws IOException {
+        if (datos == null || datos.isEmpty()) {
+            throw new IllegalArgumentException("No se encontraron registros de asistencia para el mes y año proporcionados.");
+        }
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PdfWriter writer = new PdfWriter(baos);
+        PdfDocument pdf = new PdfDocument(writer);
+        Document document = new Document(pdf);
+        document.setMargins(40, 40, 40, 40);
+
+        // Título
+        String mesNombre = obtenerNombreMes(mes);
+        String fechaReporte = mesNombre + " " + anio;
+        document.add(new Paragraph("Reporte Comparativo de Asistencia - " + fechaReporte)
+                .setFontSize(18)
+                .setBold()
+                .setTextAlignment(TextAlignment.CENTER));
+        document.add(new Paragraph("\n"));
+
+        // Totales generales
+        document.add(new Paragraph("Totales Generales:")
+                .setFontSize(14)
+                .setBold());
+        document.add(new Paragraph("Tardanzas totales: " + cantidadTardanzas)
+                .setFontSize(12));
+        document.add(new Paragraph("Puntualidades totales: " + cantidadPuntualidades)
+                .setFontSize(12));
+        document.add(new Paragraph("\n"));
+
+        // Gráfica de pastel
+        if (cantidadTardanzas > 0 || cantidadPuntualidades > 0) {
+            byte[] graficaBytes = generarGraficaPastel(cantidadTardanzas, cantidadPuntualidades);
+            ImageData imageData = ImageDataFactory.create(graficaBytes);
+            Image image = new Image(imageData);
+            image.setWidth(400);
+            image.setHorizontalAlignment(HorizontalAlignment.CENTER);
+            document.add(image);
+        }
+
+        // Gráfica comparativa de tardanzas
+        document.add(new Paragraph("\n"));
+        byte[] graficaTardanzasBytes = generarGraficaComparativaTardanzas(datos);
+        if (graficaTardanzasBytes != null) {
+            ImageData imageData = ImageDataFactory.create(graficaTardanzasBytes);
+            Image image = new Image(imageData);
+            image.setWidth(400);
+            image.setHorizontalAlignment(HorizontalAlignment.CENTER);
+            document.add(image);
+        }
+
+        // Gráfica comparativa de puntualidades
+        document.add(new Paragraph("\n"));
+        byte[] graficaPuntualidadesBytes = generarGraficaComparativaPuntualidades(datos);
+        if (graficaPuntualidadesBytes != null) {
+            ImageData imageData = ImageDataFactory.create(graficaPuntualidadesBytes);
+            Image image = new Image(imageData);
+            image.setWidth(400);
+            image.setHorizontalAlignment(HorizontalAlignment.CENTER);
+            document.add(image);
+        }
+
+        // Tabla con detalles por empleado
+        document.add(new Paragraph("\n"));
+        document.add(new Paragraph("Detalle por Empleado:")
+                .setFontSize(14)
+                .setBold());
+        Table table = new Table(new float[]{3, 4, 2, 2});
+        table.setWidth(UnitValue.createPercentValue(100));
+
+        table.addHeaderCell(new Cell().add(new Paragraph("ID Empleado").setBold()).setTextAlignment(TextAlignment.CENTER));
+        table.addHeaderCell(new Cell().add(new Paragraph("Nombre Empleado").setBold()).setTextAlignment(TextAlignment.CENTER));
+        table.addHeaderCell(new Cell().add(new Paragraph("Puntualidades").setBold()).setTextAlignment(TextAlignment.CENTER));
+        table.addHeaderCell(new Cell().add(new Paragraph("Tardanzas").setBold()).setTextAlignment(TextAlignment.CENTER));
+
+        for (ComparativaAsistencia_DTO empleado : datos) {
+            table.addCell(String.valueOf(empleado.getEmpleadoId()));
+            table.addCell(empleado.getEmpleadoNombre());
+            table.addCell(String.valueOf(empleado.getPuntualidades()));
+            table.addCell(String.valueOf(empleado.getTardanzas()));
+        }
+        document.add(table);
+        document.close();
+        return baos.toByteArray();
+    }
+
     private String obtenerNombreMes(int mes) {
-        String[] meses = {
-                "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-        };
+        String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
         if (mes < 1 || mes > 12) {
             throw new IllegalArgumentException("El número del mes debe estar entre 1 y 12.");
         }
-        return meses[mes - 1];  // Ajusta porque el índice de los meses comienza en 0
+        return meses[mes - 1];
     }
 
     private byte[] generarGraficaPastel(int cantidadTardanzas, int cantidadPuntualidades) throws IOException {
-        // Generar una gráfica de pastel para las tardanzas vs puntualidades
-        // Utiliza una librería como JFreeChart, iText7 para generar el gráfico en bytes
-        // Este método solo es un placeholder para que sepas dónde generar el gráfico
-        // Asegúrate de usar la librería adecuada para generar la gráfica de pastel y devolverla en formato byte[]
-
-        // Ejemplo de cómo usar JFreeChart para crear un gráfico de pastel (modificar según tu caso)
-        // Puedes instalar y usar la librería JFreeChart para esta tarea
-
-        // Ejemplo simplificado:
         DefaultPieDataset dataset = new DefaultPieDataset();
         dataset.setValue("Tardanzas", cantidadTardanzas);
         dataset.setValue("Puntualidades", cantidadPuntualidades);
-
-        JFreeChart chart = ChartFactory.createPieChart(
-                "Comparativa de Asistencia", dataset, true, true, false);
-
-        // Convertir el gráfico a bytes
+        JFreeChart chart = ChartFactory.createPieChart("Comparativa de Asistencia", dataset, true, true, false);
         ByteArrayOutputStream chartStream = new ByteArrayOutputStream();
-        ChartUtils.writeChartAsPNG(chartStream, chart, 500, 300);  // Ajusta el tamaño según necesidad
+        ChartUtils.writeChartAsPNG(chartStream, chart, 500, 300);
         return chartStream.toByteArray();
     }
 
-
     private byte[] generarGraficaComparativaTardanzas(List<ComparativaAsistencia_DTO> datos) throws IOException {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
         for (ComparativaAsistencia_DTO dato : datos) {
             dataset.addValue(dato.getTardanzas(), "Tardanzas", dato.getEmpleadoNombre());
         }
-
-        JFreeChart chart = ChartFactory.createBarChart(
-                "Tardanzas por Empleado",
-                "Empleado",
-                "Cantidad de Tardanzas",
-                dataset,
-                PlotOrientation.HORIZONTAL,  // Cambiar a orientación horizontal
-                true,
-                true,
-                false
-        );
-
-
+        JFreeChart chart = ChartFactory.createBarChart("Tardanzas por Empleado", "Empleado",
+                "Cantidad de Tardanzas", dataset, PlotOrientation.HORIZONTAL, true, true, false);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ChartUtils.writeChartAsPNG(baos, chart, 800, 600);
         return baos.toByteArray();
     }
 
-    // Método para generar la gráfica de Puntualidades con barras horizontales
     private byte[] generarGraficaComparativaPuntualidades(List<ComparativaAsistencia_DTO> datos) throws IOException {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
         for (ComparativaAsistencia_DTO dato : datos) {
             dataset.addValue(dato.getPuntualidades(), "Puntualidades", dato.getEmpleadoNombre());
         }
-
-        JFreeChart chart = ChartFactory.createBarChart(
-                "Puntualidades por Empleado",
-                "Empleado",
-                "Cantidad de Puntualidades",
-                dataset,
-                PlotOrientation.HORIZONTAL,  // Cambiar a orientación horizontal
-                true,
-                true,
-                false
-        );
-
-        // Acceder al renderizador de la gráfica para cambiar los colores
+        JFreeChart chart = ChartFactory.createBarChart("Puntualidades por Empleado", "Empleado",
+                "Cantidad de Puntualidades", dataset, PlotOrientation.HORIZONTAL, true, true, false);
         CategoryPlot plot = chart.getCategoryPlot();
         BarRenderer renderer = (BarRenderer) plot.getRenderer();
-
-        // Establecer el color azul para las barras
-        renderer.setSeriesPaint(0, Color.BLUE);  // 0 es el índice de la serie de datos (solo una en este caso)
-
-        // Ajustar la apariencia general del gráfico
-        plot.setBackgroundPaint(Color.WHITE);  // Color de fondo del gráfico
-        plot.setDomainGridlinePaint(Color.GRAY);  // Color de las líneas de la cuadrícula en el eje X
-        plot.setRangeGridlinePaint(Color.GRAY);  // Color de las líneas de la cuadrícula en el eje Y
-
+        renderer.setSeriesPaint(0, java.awt.Color.BLUE);
+        plot.setBackgroundPaint(java.awt.Color.WHITE);
+        plot.setDomainGridlinePaint(java.awt.Color.GRAY);
+        plot.setRangeGridlinePaint(java.awt.Color.GRAY);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ChartUtils.writeChartAsPNG(baos, chart, 800, 600);
         return baos.toByteArray();
