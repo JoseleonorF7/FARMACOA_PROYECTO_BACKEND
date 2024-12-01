@@ -50,7 +50,7 @@ public class InformeAsistencia_Controller {
     public InformeAsistencia_Controller(EmailService emailService) {
         this.emailService = emailService;
     }
-
+    @CrossOrigin(origins = "http://localhost:4200")
     @PostMapping("/programarEnvioCorreo")
     public ResponseEntity<Map<String, Object>> programarEnvioCorreo(@RequestBody Map<String, String> request) {
         String frecuencia = request.get("frecuencia");
