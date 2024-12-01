@@ -117,9 +117,6 @@ public class InformeAsistencia_Controller {
 
         return ResponseEntity.ok(response);
     }
-
-
-
     private void enviarCorreo() {
         if (correoEnviado) {
             return; // Evitar enviar el correo nuevamente
@@ -162,7 +159,6 @@ public class InformeAsistencia_Controller {
             throw new IllegalStateException("Error al enviar el correo con el reporte: " + e.getMessage(), e);
         }
     }
-
 
     // Método para ver el tiempo restante
     @GetMapping("/verTiempoRestante")

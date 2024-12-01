@@ -270,10 +270,11 @@ public class Asistencia_Controller {
             Map<String, Object> datosGrafica = asistenciaServices.obtenerComparativaAsistencia(mes, anio);
             return ResponseEntity.ok(datosGrafica);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            e.printStackTrace(); // Esto imprimirá el error completo en los logs del servidor
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error al generar la gráfica", "details", e.getMessage()));
         }
     }
-
 
 
 
