@@ -121,7 +121,6 @@ public class InformeAsistencia_Controller {
 
 
 
-    // Método para enviar el correo
     private void enviarCorreo() {
         if (correoEnviado) {
             return; // Evitar enviar el correo nuevamente
@@ -131,12 +130,42 @@ public class InformeAsistencia_Controller {
             throw new IllegalStateException("No se ha programado una fecha de envío.");
         }
 
-        String subject = "Reporte de Asistencia";
-        String body = "Este es el reporte que se generó en base a la frecuencia seleccionada. Fecha de envío: "
-                + fechaEnvio.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
-        emailService.sendSimpleMessage("farmacenterlasuperdrogueria@gmail.com", subject, body);
-        correoEnviado = true;
+        try {
+            // Extraer mes y año de la fecha de envío
+            int mes = fechaEnvio.getMonthValue();
+            int ano = fechaEnvio.getYear();
+
+            // Obtener el reporte mensual en formato PDF
+            ReporteMensual_DTO reporteMensual = asistenciaServices.obtenerReporteGeneralMensual(mes, ano);
+
+            if (reporteMensual == null) {
+                throw new IllegalStateException("No hay datos disponibles para generar el reporte de asistencia.");
+            }
+
+            // Generar el archivo PDF
+            byte[] pdfBytes = informeAsistenciaPDFServices.generateReporteMensualPdf(reporteMensual);
+
+            // Configurar el asunto y cuerpo del correo
+            String subject = "Reporte de Asistencia - " + fechaEnvio.format(DateTimeFormatter.ofPattern("MMMM yyyy"));
+            String body = "Adjunto encontrarás el reporte de asistencia generado para el mes de " +
+                    fechaEnvio.format(DateTimeFormatter.ofPattern("MMMM yyyy")) + ".";
+
+            // Enviar el correo con el PDF adjunto
+            emailService.sendEmailWithAttachment(
+                    "farmacenterlasuperdrogueria@gmail.com",
+                    subject,
+                    body,
+                    pdfBytes,
+                    "reporte_asistencia_" + mes + "_" + ano + ".pdf"
+            );
+
+            correoEnviado = true; // Marcar como enviado
+        } catch (Exception e) {
+            // Manejo de errores
+            throw new IllegalStateException("Error al enviar el correo con el reporte: " + e.getMessage(), e);
+        }
     }
+
 
     // Método para ver el tiempo restante
     @GetMapping("/verTiempoRestante")
