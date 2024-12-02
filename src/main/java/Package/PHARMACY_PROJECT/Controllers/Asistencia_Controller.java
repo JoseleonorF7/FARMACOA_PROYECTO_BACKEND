@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -74,8 +76,11 @@ public class Asistencia_Controller {
         }
 
         // Obtener la fecha y hora actuales
-        LocalDate fechaActual = LocalDate.now();
-        LocalTime horaEntradaActual = LocalTime.now();
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("America/Bogota"));
+        LocalDate fechaActual = now.toLocalDate();
+        LocalTime horaEntradaActual = now.toLocalTime();
+
+        logger.info(String.valueOf(LocalTime.now()));
 
         // Validar y registrar la entrada para el primer bloque
         Optional<Asistencia_Model> asistencia1Optional = asistenciaServices.findByEmpleadoAndFechaAndTipoRegistro(empleado, fechaActual, "ENTRADA_1");
@@ -132,23 +137,6 @@ public class Asistencia_Controller {
                 .body(new Response<>("200", "Entrada registrada", null, "ENTRADA_REGISTRADA"));
     }
 
-    @GetMapping("/todas")
-    public ResponseEntity<Response<List<Asistencia_Model>>> obtenerTodasLasAsistencias() {
-        try {
-            List<Asistencia_Model> asistencias = asistenciaServices.findAll();
-
-
-
-            Response<List<Asistencia_Model>> response = new Response<>("200", "Asistencias obtenidas satisfactoriamente", asistencias, "ASISTENCIAS_OBTENIDAS");
-            return ResponseEntity.status(HttpStatus.OK).body(response);
-        } catch (Exception e) {
-            logger.error("Error al obtener todas las asistencias", e);
-            Response<List<Asistencia_Model>> response = new Response<>("500", "Error al obtener las asistencias", null, "ERROR_DB");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-    }
-
-
     public String calcularEstadoEntrada(Empleado_Model empleado, LocalTime horaEntrada, int bloque) {
         LocalTime horaBloque = (bloque == 1) ? empleado.getHorario().getHoraInicio1() : empleado.getHorario().getHoraInicio2();
         if (horaBloque == null) return "INVALIDO";
@@ -163,6 +151,22 @@ public class Asistencia_Controller {
 
         // Lógica general para otros horarios
         return (diferenciaMinutos <= 0) ? "PUNTUAL" : "TARDE";
+    }
+
+    @GetMapping("/todas")
+    public ResponseEntity<Response<List<Asistencia_Model>>> obtenerTodasLasAsistencias() {
+        try {
+            List<Asistencia_Model> asistencias = asistenciaServices.findAll();
+
+
+
+            Response<List<Asistencia_Model>> response = new Response<>("200", "Asistencias obtenidas satisfactoriamente", asistencias, "ASISTENCIAS_OBTENIDAS");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            logger.error("Error al obtener todas las asistencias", e);
+            Response<List<Asistencia_Model>> response = new Response<>("500", "Error al obtener las asistencias", null, "ERROR_DB");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
 

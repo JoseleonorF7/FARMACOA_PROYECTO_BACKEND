@@ -4,6 +4,8 @@ import Package.PHARMACY_PROJECT.Controllers.Asistencia_Controller;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,6 +21,8 @@ import static Package.PHARMACY_PROJECT.Controllers.Asistencia_Controller.*;
 @Getter
 @Setter
 public class Asistencia_Model {
+
+    private static final Logger logger = LoggerFactory.getLogger(Asistencia_Model.class);
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -75,8 +79,11 @@ public class Asistencia_Model {
     // Método privado para calcular la diferencia de tiempo
     private String calcularDiferencia(LocalTime referencia, LocalTime actual) {
         // Obtener la diferencia total en segundos
+        logger.info(String.valueOf(referencia));
+        logger.info(String.valueOf(actual));
         long diferenciaSegundos = Math.abs(ChronoUnit.SECONDS.between(referencia, actual));
 
+        logger.info(String.valueOf(diferenciaSegundos));
         // Convertir la diferencia en horas, minutos y segundos
         long horas = diferenciaSegundos / 3600; // 3600 segundos por hora
         long minutos = (diferenciaSegundos % 3600) / 60; // El resto dividido entre 60 para obtener minutos
