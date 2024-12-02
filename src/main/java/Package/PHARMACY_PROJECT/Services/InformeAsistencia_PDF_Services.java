@@ -394,25 +394,21 @@ public class InformeAsistencia_PDF_Services {
 
     public byte[] generarReporteComparativoPdf(int cantidadTardanzas, int cantidadPuntualidades,
                                                List<ComparativaAsistencia_DTO> datos,
-                                               Integer mes, Integer anio) throws IOException
-    {
+                                               Integer mes, Integer anio) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PdfWriter writer = null;
-        PdfDocument pdf = null;
-        Document document = null;
 
-        try {
+        try (PdfWriter writer = new PdfWriter(baos);
+             PdfDocument pdf = new PdfDocument(writer);
+             Document document = new Document(pdf)) {
+
             // Validación de los datos
             if (datos == null || datos.isEmpty()) {
                 throw new IllegalArgumentException("No se encontraron registros de asistencia para el mes y año proporcionados.");
             }
 
-            writer = new PdfWriter(baos);
-             pdf = new PdfDocument(writer);
-            document = new Document(pdf);
             document.setMargins(40, 40, 40, 40);
 
-            // Título
+            // Título del reporte
             String mesNombre = obtenerNombreMes(mes);
             String fechaReporte = mesNombre + " " + anio;
             document.add(new Paragraph("Reporte Comparativo de Asistencia - " + fechaReporte)
@@ -431,44 +427,26 @@ public class InformeAsistencia_PDF_Services {
                     .setFontSize(12));
             document.add(new Paragraph("\n"));
 
-            // Gráfica de pastel
-            if (cantidadTardanzas > 0 || cantidadPuntualidades > 0) {
-                byte[] graficaBytes = generarGraficaPastel(cantidadTardanzas, cantidadPuntualidades);
-                ImageData imageData = ImageDataFactory.create(graficaBytes);
-                Image image = new Image(imageData);
-                image.setWidth(400);
-                image.setHorizontalAlignment(HorizontalAlignment.CENTER);
-                document.add(image);
-            }
-
-            // Gráfica comparativa de tardanzas
+            // Comparativa general
+            String comparativaGeneral = generarComparativaPastel(cantidadTardanzas, cantidadPuntualidades);
+            document.add(new Paragraph(comparativaGeneral).setFontSize(12));
             document.add(new Paragraph("\n"));
-            byte[] graficaTardanzasBytes = generarGraficaComparativaTardanzas(datos);
-            if (graficaTardanzasBytes != null) {
-                ImageData imageData = ImageDataFactory.create(graficaTardanzasBytes);
-                Image image = new Image(imageData);
-                image.setWidth(400);
-                image.setHorizontalAlignment(HorizontalAlignment.CENTER);
-                document.add(image);
-            }
 
-            // Gráfica comparativa de puntualidades
+            // Comparativa de puntualidades
+            String comparativaPuntualidades = generarComparativaPuntualidades(datos);
+            document.add(new Paragraph(comparativaPuntualidades).setFontSize(12));
             document.add(new Paragraph("\n"));
-            byte[] graficaPuntualidadesBytes = generarGraficaComparativaPuntualidades(datos);
-            if (graficaPuntualidadesBytes != null) {
-                ImageData imageData = ImageDataFactory.create(graficaPuntualidadesBytes);
-                Image image = new Image(imageData);
-                image.setWidth(400);
-                image.setHorizontalAlignment(HorizontalAlignment.CENTER);
-                document.add(image);
-            }
 
+            // Comparativa de tardanzas
+            String comparativaTardanzas = generarComparativaTardanzas(datos);
+            document.add(new Paragraph(comparativaTardanzas).setFontSize(12));
+            document.add(new Paragraph("\n"));
 
             // Tabla con detalles por empleado
-            document.add(new Paragraph("\n"));
             document.add(new Paragraph("Detalle por Empleado:")
                     .setFontSize(14)
                     .setBold());
+
             Table table = new Table(new float[]{3, 4, 2, 2});
             table.setWidth(UnitValue.createPercentValue(100));
 
@@ -478,34 +456,20 @@ public class InformeAsistencia_PDF_Services {
             table.addHeaderCell(new Cell().add(new Paragraph("Tardanzas").setBold()).setTextAlignment(TextAlignment.CENTER));
 
             for (ComparativaAsistencia_DTO empleado : datos) {
-                table.addCell(String.valueOf(empleado.getEmpleadoId()));
-                table.addCell(empleado.getEmpleadoNombre());
-                table.addCell(String.valueOf(empleado.getPuntualidades()));
-                table.addCell(String.valueOf(empleado.getTardanzas()));
+                table.addCell(new Cell().add(new Paragraph(String.valueOf(empleado.getEmpleadoId()))));
+                table.addCell(new Cell().add(new Paragraph(empleado.getEmpleadoNombre())));
+                table.addCell(new Cell().add(new Paragraph(String.valueOf(empleado.getPuntualidades()))));
+                table.addCell(new Cell().add(new Paragraph(String.valueOf(empleado.getTardanzas()))));
             }
-            document.add(table);
-            document.close();
-        } catch (IllegalArgumentException e) {
-            // Captura de errores en los datos, como cuando no se encuentran registros
-            throw new IllegalArgumentException("Error al generar el reporte: " + e.getMessage(), e);
 
+            document.add(table);
+
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Error al generar el reporte: " + e.getMessage(), e);
         } catch (Exception e) {
-            // Captura de cualquier otro tipo de error inesperado
             throw new RuntimeException("Error inesperado al generar el reporte: " + e.getMessage(), e);
-        } finally {
-            // Cierre de recursos en el bloque finally para asegurar que siempre se liberen
-            try {
-                if (document != null) {
-                    document.close();
-                }
-                if (writer != null) {
-                    writer.close();
-                }
-            } catch (Exception e) {
-                // Manejo de errores durante el cierre de recursos
-                System.err.println("Error al cerrar recursos: " + e.getMessage());
-            }
         }
+
         return baos.toByteArray();
     }
 
@@ -520,6 +484,42 @@ public class InformeAsistencia_PDF_Services {
         } catch (Exception e) {
             throw new RuntimeException("Error al obtener el nombre del mes: " + e.getMessage(), e);
         }
+    }
+
+    private String generarComparativaPastel(int cantidadTardanzas, int cantidadPuntualidades) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== Comparativa de Asistencia ===\n");
+        sb.append(String.format("%-20s %10s\n", "Categoría", "Cantidad"));
+        sb.append(String.format("%-20s %10d\n", "Tardanzas", cantidadTardanzas));
+        sb.append(String.format("%-20s %10d\n", "Puntualidades", cantidadPuntualidades));
+        sb.append("\nTotal: ").append(cantidadTardanzas + cantidadPuntualidades);
+        return sb.toString();
+    }
+
+    private String generarComparativaTardanzas(List<ComparativaAsistencia_DTO> datos) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== Tardanzas por Empleado ===\n");
+        sb.append(String.format("%-30s %10s\n", "Empleado", "Tardanzas"));
+        sb.append("=".repeat(40)).append("\n");
+
+        for (ComparativaAsistencia_DTO dato : datos) {
+            sb.append(String.format("%-30s %10d\n", dato.getEmpleadoNombre(), dato.getTardanzas()));
+        }
+
+        return sb.toString();
+    }
+
+    private String generarComparativaPuntualidades(List<ComparativaAsistencia_DTO> datos) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== Puntualidades por Empleado ===\n");
+        sb.append(String.format("%-30s %10s\n", "Empleado", "Puntualidades"));
+        sb.append("=".repeat(40)).append("\n");
+
+        for (ComparativaAsistencia_DTO dato : datos) {
+            sb.append(String.format("%-30s %10d\n", dato.getEmpleadoNombre(), dato.getPuntualidades()));
+        }
+
+        return sb.toString();
     }
 
     private byte[] generarGraficaPastel(int cantidadTardanzas, int cantidadPuntualidades) throws IOException {
