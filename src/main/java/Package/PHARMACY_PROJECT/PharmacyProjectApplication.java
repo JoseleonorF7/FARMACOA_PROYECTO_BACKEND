@@ -10,6 +10,7 @@ public class PharmacyProjectApplication {
 
 	public static void main(String[] args) {
 		// Obteniendo el contexto de Spring
+		System.setProperty("java.awt.headless", "true");
 		ApplicationContext context = SpringApplication.run(PharmacyProjectApplication.class, args);
 
 		// Invocación manual del servicio e PUERTO COM  (solo si @PostConstruct no funciona)

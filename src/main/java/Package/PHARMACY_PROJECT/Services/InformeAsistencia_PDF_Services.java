@@ -431,6 +431,15 @@ public class InformeAsistencia_PDF_Services {
                     .setFontSize(12));
             document.add(new Paragraph("\n"));
 
+            // Gráfica de pastel
+            if (cantidadTardanzas > 0 || cantidadPuntualidades > 0) {
+                byte[] graficaBytes = generarGraficaPastel(cantidadTardanzas, cantidadPuntualidades);
+                ImageData imageData = ImageDataFactory.create(graficaBytes);
+                Image image = new Image(imageData);
+                image.setWidth(400);
+                image.setHorizontalAlignment(HorizontalAlignment.CENTER);
+                document.add(image);
+            }
 
             // Gráfica comparativa de tardanzas
             document.add(new Paragraph("\n"));
