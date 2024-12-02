@@ -394,7 +394,8 @@ public class InformeAsistencia_PDF_Services {
 
     public byte[] generarReporteComparativoPdf(int cantidadTardanzas, int cantidadPuntualidades,
                                                List<ComparativaAsistencia_DTO> datos,
-                                               Integer mes, Integer anio) throws IOException {
+                                               Integer mes, Integer anio) throws IOException
+    {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PdfWriter writer = null;
         PdfDocument pdf = null;
@@ -407,7 +408,7 @@ public class InformeAsistencia_PDF_Services {
             }
 
             writer = new PdfWriter(baos);
-            pdf = new PdfDocument(writer);
+             pdf = new PdfDocument(writer);
             document = new Document(pdf);
             document.setMargins(40, 40, 40, 40);
 
@@ -430,37 +431,7 @@ public class InformeAsistencia_PDF_Services {
                     .setFontSize(12));
             document.add(new Paragraph("\n"));
 
-            // Gráfica de pastel
-            if (cantidadTardanzas > 0 || cantidadPuntualidades > 0) {
-                byte[] graficaBytes = generarGraficaPastel(cantidadTardanzas, cantidadPuntualidades);
-                ImageData imageData = ImageDataFactory.create(graficaBytes);
-                Image image = new Image(imageData);
-                image.setWidth(400);
-                image.setHorizontalAlignment(HorizontalAlignment.CENTER);
-                document.add(image);
-            }
 
-            // Gráfica comparativa de tardanzas
-            document.add(new Paragraph("\n"));
-            byte[] graficaTardanzasBytes = generarGraficaComparativaTardanzas(datos);
-            if (graficaTardanzasBytes != null) {
-                ImageData imageData = ImageDataFactory.create(graficaTardanzasBytes);
-                Image image = new Image(imageData);
-                image.setWidth(400);
-                image.setHorizontalAlignment(HorizontalAlignment.CENTER);
-                document.add(image);
-            }
-
-            // Gráfica comparativa de puntualidades
-            document.add(new Paragraph("\n"));
-            byte[] graficaPuntualidadesBytes = generarGraficaComparativaPuntualidades(datos);
-            if (graficaPuntualidadesBytes != null) {
-                ImageData imageData = ImageDataFactory.create(graficaPuntualidadesBytes);
-                Image image = new Image(imageData);
-                image.setWidth(400);
-                image.setHorizontalAlignment(HorizontalAlignment.CENTER);
-                document.add(image);
-            }
 
             // Tabla con detalles por empleado
             document.add(new Paragraph("\n"));
@@ -486,9 +457,7 @@ public class InformeAsistencia_PDF_Services {
         } catch (IllegalArgumentException e) {
             // Captura de errores en los datos, como cuando no se encuentran registros
             throw new IllegalArgumentException("Error al generar el reporte: " + e.getMessage(), e);
-        } catch (IOException e) {
-            // Captura de errores relacionados con la entrada y salida de archivos
-            throw new IOException("Error al generar el reporte PDF: " + e.getMessage(), e);
+
         } catch (Exception e) {
             // Captura de cualquier otro tipo de error inesperado
             throw new RuntimeException("Error inesperado al generar el reporte: " + e.getMessage(), e);

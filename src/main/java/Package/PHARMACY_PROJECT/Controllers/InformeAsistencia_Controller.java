@@ -26,7 +26,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "https://farmacia-proyecto-backend.onrender.com")
 @RestController
 @RequestMapping("/informe-asistencia")
 public class InformeAsistencia_Controller {
@@ -318,7 +318,15 @@ public class InformeAsistencia_Controller {
             }
 
             // Obtener los datos comparativos desde el servicio
-            Map<String, Object> datosComparativa = asistenciaServices.obtenerComparativaAsistencia(mes, anio);
+            Map<String, Object> datosComparativa = null;
+            try {
+                datosComparativa = asistenciaServices.obtenerComparativaAsistencia(mes, anio);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Response.internalServerError("Error al obtener datos de asistencia: " + e.getMessage()));
+            }
+
             if (datosComparativa == null || datosComparativa.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Response.notFound("No hay datos para generar el reporte comparativo."));
@@ -331,8 +339,15 @@ public class InformeAsistencia_Controller {
                     (List<ComparativaAsistencia_DTO>) datosComparativa.getOrDefault("empleados", List.of());
 
             // Generar el PDF
-            byte[] pdfBytes = informeAsistenciaPDFServices.generarReporteComparativoPdf(
-                    cantidadTardanzas, cantidadPuntualidades, empleados, mes, anio);
+            byte[] pdfBytes = null;
+            try {
+                pdfBytes = informeAsistenciaPDFServices.generarReporteComparativoPdf(
+                        cantidadTardanzas, cantidadPuntualidades, empleados, mes, anio);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Response.internalServerError("Error al generar el PDF: " + e.getMessage()));
+            }
 
             // Configurar encabezados
             HttpHeaders headers = new HttpHeaders();
@@ -344,20 +359,19 @@ public class InformeAsistencia_Controller {
             return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(Response.error("Datos inválidos: " + e.getMessage()));
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Response.internalServerError("Error al generar el PDF: " + e.getMessage()));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
                             "error", "Error al generar la gráfica",
                             "details", e.getMessage(),
                             "stacktrace", Arrays.toString(e.getStackTrace())
                     ));
-
         }
     }
+
 
 
 
