@@ -78,22 +78,19 @@ public class Asistencia_Model {
 
     // Método privado para calcular la diferencia de tiempo
     private String calcularDiferencia(LocalTime referencia, LocalTime actual) {
-        // Obtener la diferencia total en segundos
-        logger.info(String.valueOf(referencia));
-        logger.info(String.valueOf(actual));
-        long diferenciaSegundos = Math.abs(ChronoUnit.SECONDS.between(referencia, actual));
+        // Obtener la diferencia total en segundos (sin valor absoluto)
+        long diferenciaSegundos = ChronoUnit.SECONDS.between(referencia, actual);
 
-        logger.info(String.valueOf(diferenciaSegundos));
         // Convertir la diferencia en horas, minutos y segundos
-        long horas = diferenciaSegundos / 3600; // 3600 segundos por hora
-        long minutos = (diferenciaSegundos % 3600) / 60; // El resto dividido entre 60 para obtener minutos
-        long segundos = diferenciaSegundos % 60; // El resto son los segundos restantes
+        long horas = Math.abs(diferenciaSegundos) / 3600;
+        long minutos = (Math.abs(diferenciaSegundos) % 3600) / 60;
+        long segundos = Math.abs(diferenciaSegundos) % 60;
 
-        if (diferenciaSegundos < RANGO_TEMPRANO) { // Temprano
+        if (diferenciaSegundos < RANGO_TEMPRANO * 60) { // Temprano (conversión de minutos a segundos)
             return horas > 0 ? "Temprano por " + horas + " hora(s), " + minutos + " minuto(s) y " + segundos + " segundo(s)"
                     : minutos > 0 ? "Temprano por " + minutos + " minuto(s) y " + segundos + " segundo(s)"
                     : "Temprano por " + segundos + " segundo(s)";
-        } else if (diferenciaSegundos > RANGO_TARDE) { // Tarde
+        } else if (diferenciaSegundos > RANGO_TARDE * 60) { // Tarde
             return horas > 0 ? "Tarde por " + horas + " hora(s), " + minutos + " minuto(s) y " + segundos + " segundo(s)"
                     : minutos > 0 ? "Tarde por " + minutos + " minuto(s) y " + segundos + " segundo(s)"
                     : "Tarde por " + segundos + " segundo(s)";
@@ -101,6 +98,8 @@ public class Asistencia_Model {
             return "Puntual";
         }
     }
+
+
 
 
 }
